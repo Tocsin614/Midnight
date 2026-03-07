@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.5.5
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -8,8 +8,12 @@ description: |
   Echo-focused engine: Temporal Anomaly on cooldown for free Echo spread,
   Essence Burst consumed with Emerald Blossom for Twin Echoes, smart
   Merithra's Blessing proc tracking, and Fire Breath / Leaping Flames loop.
-  NOTE: Dream Breath and Fire Breath are empowered spells — hold for Rank 1
-  (passive maintenance) or release at max rank for burst windows.
+  Empowered spells use casting_check release lines:
+    Dream Breath → Rank 1 normally; Rank 4 instantly via Tip the Scales emergency combo
+    Fire Breath  → releases at Rank 4 for maximum Leaping Flames + Essence Burst gen
+  v1.5.0: Configurable empower levels via sliders — Dream Breath (1-3), Fire Breath
+    Chronowarden (1-3), Fire Breath Flameshaper (1-4). Default to max for raid;
+    lower for faster M+ cycling.
 
 entry: main
 
@@ -102,8 +106,29 @@ config:
         value: 0
     default: 1
 
-  mythic_plus:
-    label: "Mythic+ Mode"
+  dream_breath_empower:
+    label: "D. Breath Emp. Level"
+    type: slider
+    min: 1
+    max: 4
+    default: 1
+
+  fire_breath_empower_chrono:
+    label: "F. Breath Emp. (Chrono)"
+    type: slider
+    min: 1
+    max: 3
+    default: 3
+
+  fire_breath_empower_flame:
+    label: "F. Breath Emp. (Flame)"
+    type: slider
+    min: 1
+    max: 4
+    default: 4
+
+  deep_breath_enabled:
+    label: "Enable Deep Breath"
     type: checkbox
     default: false
 
@@ -149,6 +174,10 @@ variables:
   dream_flight_ready: cooldown.dream_flight.ready&talent.dream_flight.enabled
   rewind_ready: cooldown.rewind.ready
   zephyr_ready: cooldown.zephyr.ready&talent.zephyr.enabled
+  time_dilation_ready: cooldown.time_dilation.ready&talent.time_dilation.enabled
+  # Stasis is only worth firing when Dream Breath AND Temporal Anomaly are nearly ready
+  # so the storage window captures both high-value spells (per community APL)
+  stasis_spells_ready: cooldown.dream_breath.remains<3&cooldown.temporal_anomaly.remains<3
 
   # === ECHO MANAGEMENT ===
   # Echo spread tracking — how many group members currently hold the Echo buff
@@ -161,6 +190,24 @@ variables:
   mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly&mouseover.range>0&mouseover.range<=40
 
 lists:
+
+  empower_releases:
+    # Release-only lines — casting_check gates these to ONLY fire while mid-empower
+    # Top priority in main so the release press is never blocked by other rotation logic
+    # Dream Breath releases
+    - dream_breath,casting_check=dream_breath,empower_to=1,if=config.dream_breath_empower=1
+    - dream_breath,casting_check=dream_breath,empower_to=2,if=config.dream_breath_empower=2
+    - dream_breath,casting_check=dream_breath,empower_to=3,if=config.dream_breath_empower=3
+    - dream_breath,casting_check=dream_breath,empower_to=4,if=config.dream_breath_empower=4
+    # Fire Breath releases — Chronowarden
+    - fire_breath,casting_check=fire_breath,empower_to=1,if=var.chrono_build&config.fire_breath_empower_chrono=1
+    - fire_breath,casting_check=fire_breath,empower_to=2,if=var.chrono_build&config.fire_breath_empower_chrono=2
+    - fire_breath,casting_check=fire_breath,empower_to=3,if=var.chrono_build&config.fire_breath_empower_chrono=3
+    # Fire Breath releases — Flameshaper
+    - fire_breath,casting_check=fire_breath,empower_to=1,if=var.flame_build&config.fire_breath_empower_flame=1
+    - fire_breath,casting_check=fire_breath,empower_to=2,if=var.flame_build&config.fire_breath_empower_flame=2
+    - fire_breath,casting_check=fire_breath,empower_to=3,if=var.flame_build&config.fire_breath_empower_flame=3
+    - fire_breath,casting_check=fire_breath,empower_to=4,if=var.flame_build&config.fire_breath_empower_flame=4
 
   spell_queue:
     - queue_spell
@@ -195,9 +242,17 @@ lists:
   emergency_healing:
     # Rewind — mass emergency heal based on recent damage taken; true last resort
     - rewind,interrupt=true,range_check=none,if=var.rewind_ready&var.group_critical
+    # Tip the Scales + Dream Breath — instant max-rank AoE panic button (both builds)
+    # TtS makes the next empower instant — no release line needed, cast completes immediately
+    # Fires when 2+ members are critically low and TtS is available
+    - tip_the_scales,interrupt=true,range_check=none,if=var.tip_the_scales_ready&!buff.tip_the_scales.up&group.count(cycle.health.pct<config.emergency_hp)>=2
+    - dream_breath,interrupt=true,if=buff.tip_the_scales.up&var.group_critical
     # Verdant Embrace — instant single-target burst on dying tank/member
     - verdant_embrace,cycle=tanks,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
+    # Time Dilation — external buff on tank or lowest member buying them extra time
+    - time_dilation,cycle=tanks,interrupt=true,if=var.time_dilation_ready&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
+    - time_dilation,cycle=members,interrupt=true,if=var.time_dilation_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
     # Merithra's Blessing proc → Reversion on emergency target (instant burst + HoT)
     - reversion,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
     - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
@@ -210,15 +265,18 @@ lists:
     - obsidian_scales,range_check=none,if=cooldown.obsidian_scales.ready&health.pct<50
     # Zephyr — 20% AoE damage reduction for 5 closest allies; pre-emptive on predictable AoE
     - zephyr,range_check=none,if=var.zephyr_ready&var.group_heavy_damage
+    # Time Dilation — external sustain CD on tank below tank_heal_hp threshold
+    # Lower priority than emergency use above; this is the proactive maintenance line
+    - time_dilation,cycle=tanks,if=var.time_dilation_ready&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
 
   major_cooldowns:
-    # Tip the Scales (Chronowarden) — frontloaded haste/CDR; use right before heavy healing
-    # Temporal Burst is frontloaded so fire at the start of a damage window
-    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&var.group_heavy_damage&player.combat
-    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&state.cds&player.combat
-    # Stasis — store 3 healing spells for later burst; fire with state.cds or pre-boss
-    # Default combo: Dream Breath → Emerald Blossom → Temporal Anomaly (TA last = Echoes not wasted)
-    - stasis,range_check=none,if=var.stasis_ready&state.cds&player.combat
+    # Tip the Scales (Chronowarden) — normal burst window usage: fire before heavy healing ramps
+    # Emergency path is handled above in emergency_healing; this is the planned usage
+    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&var.group_heavy_damage&player.combat&!buff.tip_the_scales.up
+    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&state.cds&player.combat&!buff.tip_the_scales.up
+    # Stasis — only fire when Dream Breath AND Temporal Anomaly are within 3s of ready
+    # This ensures the storage window captures both high-value spells (DB → EB → TA order)
+    - stasis,range_check=none,if=var.stasis_ready&var.stasis_spells_ready&state.cds&player.combat
     # Dream Flight (Flameshaper alternative to Stasis) — flying AoE heal + long HoT
     - dream_flight,range_check=none,if=var.dream_flight_ready&var.flame_build&var.group_heavy_damage&player.combat
     - dream_flight,range_check=none,if=var.dream_flight_ready&var.flame_build&state.cds&player.combat
@@ -233,10 +291,12 @@ lists:
     - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
 
   dream_breath_rotation:
-    # Dream Breath on cooldown — Rank 1 for passive maintenance, max rank for burst damage
-    # Rank 3 guarantees a Merithra's Blessing proc (talent)
-    # Flameshaper: Legacy of the Lifebinder grants 2 charges
-    - dream_breath,if=var.dream_breath_ready&player.combat
+    # Start lines only — release is handled by empower_releases at top of main
+    # !player.casting.dream_breath prevents starting a new cast while already empowering
+    - dream_breath,empower_to=1,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=1&!player.casting.dream_breath
+    - dream_breath,empower_to=2,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=2&!player.casting.dream_breath
+    - dream_breath,empower_to=3,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=3&!player.casting.dream_breath
+    - dream_breath,empower_to=4,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=4&!player.casting.dream_breath
 
   essence_management:
     # Essence Burst → Emerald Blossom (highest priority, free cost)
@@ -249,6 +309,9 @@ lists:
     # Echo application — core Essence spender; aim to keep tanks and injured members Echo'd
     - echo,cycle=tanks,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
     - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
+    # Essence cap safety dump — at 4 Essence with no Echo targets in range, spend before overcapping
+    # Covers healthy-group downtime where normal conditions would leave us wasting resources
+    - echo,cycle=members,if=essence>=4&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&player.combat
 
   echo_consumption:
     # Consume Echo buffs with the strongest available spell
@@ -274,11 +337,24 @@ lists:
     - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
 
+  living_flame_heal_filler:
+    # Living Flame as a last-resort spot heal — only when Verdant Embrace AND Dream Breath
+    # are both on cooldown and target still needs healing (per Icy Veins: desperate moments only)
+    # Never use in raid; acceptable in Mythic+ when stronger tools aren't available
+    - living_flame,cycle=members,if=cycle.health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
+
   fire_breath_leaping_flames:
-    # Fire Breath on cooldown — generates Leaping Flames buff for multi-target Living Flame
-    # Higher rank = more Living Flame targets (Rank 4 = 4 extra targets)
-    # Cast at rank 3-4 during Living Flame Essence Burst windows for maximum Essence generation
-    - fire_breath,if=var.fire_breath_ready&target.valid&player.combat
+    # Start lines only — release is handled by empower_releases at top of main
+    # !player.casting.fire_breath prevents starting while already empowering
+    # Chronowarden: max stage 3
+    - fire_breath,empower_to=1,if=var.fire_breath_ready&target.valid&player.combat&var.chrono_build&config.fire_breath_empower_chrono=1&!player.casting.fire_breath
+    - fire_breath,empower_to=2,if=var.fire_breath_ready&target.valid&player.combat&var.chrono_build&config.fire_breath_empower_chrono=2&!player.casting.fire_breath
+    - fire_breath,empower_to=3,if=var.fire_breath_ready&target.valid&player.combat&var.chrono_build&config.fire_breath_empower_chrono=3&!player.casting.fire_breath
+    # Flameshaper: max stage 4
+    - fire_breath,empower_to=1,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=1&!player.casting.fire_breath
+    - fire_breath,empower_to=2,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=2&!player.casting.fire_breath
+    - fire_breath,empower_to=3,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=3&!player.casting.fire_breath
+    - fire_breath,empower_to=4,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=4&!player.casting.fire_breath
 
   mouseover_healing:
     # Verdant Embrace on mouseover — instant single-target burst
@@ -295,11 +371,14 @@ lists:
     - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up
 
   dps_fillers:
+    # Deep Breath — AoE damage when group is healthy and 3+ enemies are present
+    # Locks you in flight briefly; only use when healing situation is comfortable
+    - deep_breath,if=config.deep_breath_enabled&active_enemies>=3&group.lowest.health.pct>80&target.valid
     # Living Flame — primary filler; offensive use refunds mana, generates Essence Burst
     # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets (big Essence Burst gen)
     - living_flame,if=var.leaping_flames_up&target.valid
     - living_flame,if=target.valid
-    # Disintegrate — damage + Energy Loop mana return (Mythic+/if talented)
+    # Disintegrate — damage + Energy Loop mana return (if talented)
     - disintegrate,if=talent.energy_loop.enabled&target.valid&var.mana_ok
 
   racial_defensive:
@@ -318,6 +397,7 @@ lists:
     - fireblood,if=(var.group_heavy_damage|buff.temporal_burst.up)&!player.dispelable
 
   main:
+    - call_action_list,name=empower_releases
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=pre_pull_setup,if=!player.combat&target.exists&target.boss
@@ -327,27 +407,30 @@ lists:
     # Emergency healing — interrupts everything
     - call_action_list,name=emergency_healing,if=var.needs_emergency
     - call_action_list,name=defensive_cooldowns
+    # Block non-emergency healing during active channels (Disintegrate, etc.)
+    # Empower releases (dream_breath, fire_breath casting_check lines) are NOT channels — they still fire
+    - return,if=player.channeling
     # Dispels
     - call_action_list,name=dispel
     - call_action_list,name=racial_defensive
     # Cooldowns
     - call_action_list,name=major_cooldowns
     - call_action_list,name=trinkets
-    # Core healing engine — this block is the heart of Preservation Evoker
-    # Temporal Anomaly and Dream Breath run first to never fall off cooldown
+    # Core healing engine — Temporal Anomaly and Dream Breath never fall off cooldown
+    # These also handle their own empower release lines via casting_check
     - call_action_list,name=temporal_anomaly_rotation
     - call_action_list,name=dream_breath_rotation
-    # Essence management: Essence Burst → Emerald Blossom, then Echo application
+    # Essence management: Essence Burst → Emerald Blossom (Twin Echoes), then Echo spread
     - call_action_list,name=essence_management
-    # Consume Echo buffs: Merithra's Blessing → Reversion → Verdant Embrace
+    # Consume Echo buffs: Merithra's Blessing proc → Reversion → Verdant Embrace
     - call_action_list,name=echo_consumption
-    # Fire Breath on cooldown for Leaping Flames
+    # Living Flame last-resort spot heal (both CDs down, member still low)
+    - call_action_list,name=living_flame_heal_filler,if=var.needs_member_healing
+    # Fire Breath on cooldown — empower release fires via casting_check at Rank 4
     - call_action_list,name=fire_breath_leaping_flames
-    # Mouseover healing
+    # Mouseover and movement
     - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
-    # Movement fallback
     - call_action_list,name=movement,if=player.moving
-    # DPS fillers — Living Flame generates Essence Burst; blocked during active casts
-    - return,if=player.channeling
+    # DPS fillers — Leaping Flames Living Flame first for Essence Burst gen
     - call_action_list,name=racial_offensive
     - call_action_list,name=dps_fillers
