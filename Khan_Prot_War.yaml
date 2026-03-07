@@ -1,0 +1,246 @@
+spec: 73
+name: "Prot Warrior - Mountain Thane"
+version: "1.5.2"
+author: "Khan"
+description: "Mountain Thane Protection Warrior | Midnight 12.0 | Full ST + AoE with Opener"
+
+entry: main
+
+config:
+
+  # === ACTIVE MITIGATION ===
+  shield_block_hp:
+    section: "Active Mitigation"
+    label: "Shield Block HP %"
+    type: slider
+    min: 20
+    max: 100
+    default: 100
+    show_override: true
+    description: "Use Shield Block when health drops below this %"
+
+  ignore_pain_hp:
+    section: "Active Mitigation"
+    label: "Ignore Pain HP %"
+    type: slider
+    min: 20
+    max: 100
+    default: 80
+    show_override: true
+    description: "Use Ignore Pain as a heal when health drops below this %"
+
+  impending_victory_hp:
+    section: "Active Mitigation"
+    label: "Impending Victory HP %"
+    type: slider
+    min: 20
+    max: 100
+    default: 75
+    show_override: true
+    description: "Use Impending Victory when health drops below this %"
+
+  use_impending_victory:
+    section: "Active Mitigation"
+    label: "Auto Impending Victory"
+    type: checkbox
+    default: true
+    description: "Automatically use Impending Victory at HP threshold"
+
+  rage_dump_threshold:
+    section: "Active Mitigation"
+    label: "Rage Dump Threshold"
+    type: slider
+    min: 60
+    max: 95
+    default: 80
+    show_override: true
+    description: "Use Ignore Pain to dump Rage when above this value (prevents overcap)"
+
+  # === DEFENSIVES ===
+  shield_wall_hp:
+    section: "Defensives"
+    label: "Shield Wall HP %"
+    type: slider
+    min: 10
+    max: 60
+    default: 30
+    show_override: true
+    description: "Use Shield Wall when health drops below this %"
+
+  auto_defensives:
+    section: "Defensives"
+    label: "Auto Defensives"
+    type: checkbox
+    default: true
+    description: "Automatically use Shield Wall at HP threshold"
+
+  # === ROTATION ===
+  aoe_threshold:
+    section: "Rotation"
+    label: "AoE Target Count"
+    type: slider
+    min: 2
+    max: 5
+    default: 2
+    show_override: true
+    description: "Switch to AoE priority at or above this many enemies"
+
+  use_execute:
+    section: "Rotation"
+    label: "Use Execute"
+    type: checkbox
+    default: true
+    description: "Use Execute in execute phase (only if not needed for survivability; requires Deep Wounds)"
+
+  # === COOLDOWNS ===
+  sync_cds_with_burst:
+    section: "Cooldowns"
+    label: "Sync CDs with Burst Window"
+    type: checkbox
+    default: true
+    description: "Hold Ravager and Shield Charge for Avatar/Demo Shout windows"
+
+  use_potion:
+    section: "Cooldowns"
+    label: "Use Combat Potion"
+    type: checkbox
+    default: false
+    description: "Use combat potion on Bloodlust or during Avatar"
+
+variables:
+
+  # === TARGET STATE ===
+  target_valid: target.exists&target.enemy&target.alive
+  target_attackable: var.target_valid&target.range<=5
+
+  # === COMBAT STATE ===
+  avatar_up: buff.avatar.up
+  demo_shout_up: buff.demoralizing_shout.up
+  shield_block_up: buff.shield_block.up
+  burst_of_power: buff.burst_of_power.up
+  burst_window: buff.avatar.up|buff.demoralizing_shout.up
+
+  # === MOUNTAIN THANE: THUNDER BLAST ===
+  # Stacks to 2 — consume before Avatar (Avatar of the Storm grants 2 fresh stacks)
+  thunder_blast_up: buff.thunder_blast.stack>=1
+  thunder_blast_capped: buff.thunder_blast.stack>=2
+
+  # === AoE MODE ===
+  in_aoe: active_enemies>=config.aoe_threshold&state.aoe
+
+  # === RAGE MANAGEMENT ===
+  # Prevent rage overcap — Ignore Pain dumps rage to stay below cap
+  rage_overcap: rage>=config.rage_dump_threshold
+  rage_safe_to_spend: rage>=30&!var.rage_overcap
+
+  # === HEALTH / EXECUTE ===
+  health_critical: health.pct<20
+  # Massacre talent = 35% threshold (raid/delve), default = 20% (M+)
+  execute_phase: (talent.massacre.enabled&target.health.pct<35)|target.health.pct<20
+
+lists:
+
+  main:
+    - call_action_list,name=spell_queue
+    - call_action_list,name=sanity_checks
+    - call_action_list,name=auto_target
+
+    # Battle Shout — maintain buff, refresh before it drops
+    - battle_shout,range_check=none,if=!buff.battle_shout.up|buff.battle_shout.remains<60
+
+    # Pre-combat Ravager — lands as you charge in
+    - ravager,if=!player.combat&!player.mounted&target.exists&target.enemy&target.range<=40&cooldown.ravager.ready
+
+    # Rage overcap safety — fires before everything
+    - ignore_pain.player,range_check=none,if=player.combat&var.rage_overcap
+
+    - call_action_list,name=opener,if=player.combat&player.combat.time<=10
+    - call_action_list,name=interrupts
+    - call_action_list,name=defensives,if=player.combat&config.auto_defensives
+    - call_action_list,name=active_mitigation,if=player.combat
+    - call_action_list,name=cooldowns,if=player.combat&state.cds
+
+    - blood_fury,if=player.combat&var.burst_window
+    - berserking,if=player.combat&var.burst_window
+    - fireblood,if=player.combat&var.burst_window
+    - ancestral_call,if=player.combat&var.burst_window
+    - bag_of_tricks,if=player.combat
+    - lights_judgment,if=player.combat
+
+    - run_action_list,name=aoe_rotation,if=player.combat&var.in_aoe&var.target_valid
+    - run_action_list,name=st_rotation,if=player.combat&var.target_valid
+
+  opener:
+    - avatar,if=cooldown.avatar.ready&player.combat.time<=2
+    - shield_block,if=!var.shield_block_up&cooldown.shield_block.ready
+    - shield_slam,if=cooldown.shield_slam.ready&player.combat.time<=4
+    - demoralizing_shout,if=!var.demo_shout_up&cooldown.demoralizing_shout.ready
+    - thunder_blast,if=var.thunder_blast_up
+    - shield_charge,if=cooldown.shield_charge.ready
+    - revenge,if=buff.revenge.up|rage>=30
+
+  interrupts:
+    - pummel,name="Interrupt Target",if=target.casting.interruptible&target.casting.elapsed>=0.2&(target.casting.remains<1|target.channeling)
+    - pummel.mouseover,name="Interrupt Mouseover",range_check=mouseover,if=mouseover.casting.interruptible&mouseover.casting.elapsed>=0.2&(mouseover.casting.remains<1|mouseover.channeling)
+    - pummel.focus,name="Interrupt Focus",range_check=focus,if=focus.casting.interruptible&focus.casting.elapsed>=0.2&(focus.casting.remains<1|focus.channeling)
+    # Storm Bolt fallback when Pummel is on CD
+    - storm_bolt,name="Stun Interrupt",if=target.casting.interruptible&!cooldown.pummel.ready&target.casting.elapsed>=0.2&!target.boss
+
+  cooldowns:
+    # Consume Thunder Blasts before Avatar — Avatar grants 2 fresh stacks on cast
+    - thunder_blast,if=var.thunder_blast_capped&cooldown.avatar.ready
+    - avatar,if=cooldown.avatar.ready
+    - demoralizing_shout,if=cooldown.demoralizing_shout.ready&!var.demo_shout_up
+    - ravager,if=cooldown.ravager.ready&(var.burst_window|!config.sync_cds_with_burst)
+    - shield_charge,if=cooldown.shield_charge.ready&(var.burst_window|!config.sync_cds_with_burst)
+    - trinket_1,if=trinket_1.sync
+    - trinket_2,if=trinket_2.sync
+    - combat_potion,if=config.use_potion&(buff.bloodlust.react|var.avatar_up)
+
+  active_mitigation:
+    - impending_victory,if=config.use_impending_victory&health.pct<config.impending_victory_hp&var.target_attackable
+    - ignore_pain.player,range_check=none,if=var.rage_overcap
+    - ignore_pain.player,range_check=none,if=health.pct<config.ignore_pain_hp&rage>=40
+    - shield_block,if=health.pct<config.shield_block_hp&!var.shield_block_up&cooldown.shield_block.ready
+
+  defensives:
+    - shield_wall.player,range_check=none,if=health.pct<config.shield_wall_hp&cooldown.shield_wall.ready&!buff.shield_wall.up
+    - spell_reflection.player,range_check=none,if=cooldown.spell_reflection.ready&reflectable.ready
+    - healthstone.player,range_check=none,if=var.health_critical&healthstone.ready
+    - health_potion.player,range_check=none,if=var.health_critical&health_potion.ready&!healthstone.ready
+
+  st_rotation:
+    # Consume Thunder Blasts before Avatar — don't waste stacks
+    - thunder_blast,if=var.thunder_blast_capped&cooldown.avatar.ready
+    - avatar,if=cooldown.avatar.ready
+    - demoralizing_shout,if=cooldown.demoralizing_shout.ready&!var.demo_shout_up
+    - ravager,if=cooldown.ravager.ready
+    - shield_charge,if=cooldown.shield_charge.ready
+    # Burst of Power proc = no CD on next 2 Shield Slams
+    - shield_slam,if=var.burst_of_power
+    - shield_slam,if=cooldown.shield_slam.ready
+    # With Avatar up Thunder Blast is #1 priority (Capacitance)
+    - thunder_blast,if=var.thunder_blast_up&var.avatar_up
+    - thunder_blast,if=var.thunder_blast_up
+    - thunder_clap,if=cooldown.thunder_clap.ready
+    - execute,if=config.use_execute&var.execute_phase&var.rage_safe_to_spend&talent.deep_wounds
+    - revenge,if=buff.revenge.up
+    - revenge,if=!var.execute_phase&var.rage_safe_to_spend
+    - ignore_pain.player,range_check=none,if=rage>=70
+
+  aoe_rotation:
+    # Consume Thunder Blasts before Avatar — don't waste stacks
+    - thunder_blast,if=var.thunder_blast_capped&cooldown.avatar.ready
+    - avatar,if=cooldown.avatar.ready
+    - demoralizing_shout,if=cooldown.demoralizing_shout.ready&!var.demo_shout_up
+    - ravager,if=cooldown.ravager.ready
+    - shield_charge,if=cooldown.shield_charge.ready
+    # Thunder Blast is #1 AoE priority — consume every proc immediately
+    - thunder_blast,if=var.thunder_blast_up
+    - shield_slam,if=var.burst_of_power
+    - shield_slam,if=cooldown.shield_slam.ready
+    # Prefer Thunder Clap in dungeons for mob pickup
+    - thunder_clap,if=cooldown.thunder_clap.ready
+    - revenge,if=buff.revenge.up
+    - revenge,if=var.rage_safe_to_spend
+    - ignore_pain.player,range_check=none,if=rage>=65

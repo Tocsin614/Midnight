@@ -1,0 +1,353 @@
+version: 1.0.0
+author: Khan
+spec: 1468
+name: Khan's Preservation Evoker
+description: |
+  Preservation Evoker healing rotation for Midnight 12.0.
+  Supports Chronowarden and Flameshaper hero builds.
+  Echo-focused engine: Temporal Anomaly on cooldown for free Echo spread,
+  Essence Burst consumed with Emerald Blossom for Twin Echoes, smart
+  Merithra's Blessing proc tracking, and Fire Breath / Leaping Flames loop.
+  NOTE: Dream Breath and Fire Breath are empowered spells — hold for Rank 1
+  (passive maintenance) or release at max rank for burst windows.
+
+entry: main
+
+movement_allowed: true
+
+config:
+
+  emergency_hp:
+    label: "Emergency HP %"
+    type: slider
+    min: 10
+    max: 40
+    default: 25
+
+  tank_heal_hp:
+    label: "Tank Heal HP %"
+    type: slider
+    min: 40
+    max: 90
+    default: 70
+
+  member_heal_hp:
+    label: "Member Heal HP %"
+    type: slider
+    min: 50
+    max: 95
+    default: 80
+
+  echo_hp:
+    label: "Echo Apply HP %"
+    type: slider
+    min: 40
+    max: 95
+    default: 80
+
+  reversion_hp:
+    label: "Reversion HoT HP %"
+    type: slider
+    min: 40
+    max: 90
+    default: 75
+
+  mana_conserve_threshold:
+    label: "Low Mana Conserve %"
+    type: slider
+    min: 10
+    max: 40
+    default: 20
+
+  group_heal_count:
+    label: "Group Injured Min Count"
+    type: slider
+    min: 2
+    max: 5
+    default: 3
+
+  hero_build:
+    label: "Hero Talent Build"
+    type: dropdown
+    options:
+      - label: "Auto-Detect"
+        value: 0
+      - label: "Chronowarden"
+        value: 1
+      - label: "Flameshaper"
+        value: 2
+    default: 0
+
+  auto_dispel:
+    label: "Auto Dispel"
+    type: checkbox
+    default: true
+
+  mouseover:
+    label: "Enable Mouseover Healing"
+    type: checkbox
+    default: true
+
+  trinket_usage:
+    label: "Trinket Usage"
+    type: dropdown
+    options:
+      - label: "On Cooldown"
+        value: 1
+      - label: "With Major Cooldowns"
+        value: 2
+      - label: "When Group Damaged"
+        value: 3
+      - label: "Manual Only"
+        value: 0
+    default: 1
+
+  mythic_plus:
+    label: "Mythic+ Mode"
+    type: checkbox
+    default: false
+
+variables:
+
+  # === HERO BUILD DETECTION ===
+  # Chronowarden has Nozdormu Adept (reduced TA cooldown); fall back to dropdown
+  chrono_build: config.hero_build=1|(talent.nozdormu_adept.enabled&config.hero_build=0)
+  flame_build: config.hero_build=2|(!talent.nozdormu_adept.enabled&config.hero_build=0)
+
+  # === GROUP HEALTH STATE ===
+  needs_emergency: group.lowest.health.pct<config.emergency_hp
+  needs_tank_healing: group.tanks.lowest.health.pct<config.tank_heal_hp
+  needs_member_healing: group.lowest.health.pct<config.member_heal_hp
+  group_heavy_damage: group.count(cycle.health.pct<config.member_heal_hp)>=config.group_heal_count
+  group_critical: group.count(cycle.health.pct<config.emergency_hp)>=3
+  tank_emergency: group.tanks.lowest.health.pct<config.emergency_hp
+  player_low: health.pct<config.emergency_hp
+  player_needs_healing: health.pct<config.member_heal_hp
+
+  # === MANA STATE ===
+  mana_ok: mana.pct>config.mana_conserve_threshold
+  mana_healthy: mana.pct>50
+
+  # === RESOURCE STATE ===
+  essence_burst_up: buff.essence_burst.up
+  have_essence_echo: essence>=2
+  have_essence_blossom: essence>=3
+
+  # === KEY PROCS & BUFFS ===
+  merithra_proc: buff.merithras_blessing.up
+  leaping_flames_up: buff.leaping_flames.up
+  temporal_burst_active: buff.temporal_burst.up
+  primacy_stacks: buff.primacy.stack
+
+  # === COOLDOWN READINESS ===
+  temporal_anomaly_ready: cooldown.temporal_anomaly.ready
+  dream_breath_ready: cooldown.dream_breath.ready
+  fire_breath_ready: cooldown.fire_breath.ready
+  verdant_embrace_ready: cooldown.verdant_embrace.ready
+  tip_the_scales_ready: cooldown.tip_the_scales.ready&talent.tip_the_scales.enabled
+  stasis_ready: cooldown.stasis.ready&talent.stasis.enabled
+  dream_flight_ready: cooldown.dream_flight.ready&talent.dream_flight.enabled
+  rewind_ready: cooldown.rewind.ready
+  zephyr_ready: cooldown.zephyr.ready&talent.zephyr.enabled
+
+  # === ECHO MANAGEMENT ===
+  # Echo spread tracking — how many group members currently hold the Echo buff
+  echo_spread_wide: group.count(cycle.buff.echo.up)>=3
+  tank_has_echo: group.tanks.lowest.health.pct<100&buff.echo.up.any
+  # Reversion HoT coverage
+  reversion_spread: group.count(cycle.buff.reversion.up)>=3
+
+  # === MOUSEOVER ===
+  mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly&mouseover.range>0&mouseover.range<=40
+
+lists:
+
+  spell_queue:
+    - queue_spell
+
+  sanity_checks:
+    - return,if=player.dead
+    - return,if=mounted
+    - return,if=!state.rotation
+    - return,if=state.blocked_inputs
+    - return,if=player.loot_nearby
+
+  pre_pull_setup:
+    # Apply Echo to tanks and key members before pull
+    - echo,cycle=tanks,if=cycle.buff.echo.down&cycle.range>0&cycle.range<=40
+    - echo,cycle=members,if=cycle.buff.echo.down&cycle.range>0&cycle.range<=40&var.have_essence_echo
+    # Pre-cast Temporal Anomaly to shield up and spread Echo at the pull
+    - temporal_anomaly,if=cooldown.temporal_anomaly.ready
+
+  out_of_combat:
+    - echo,cycle=members,if=cycle.health.pct<90&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&var.have_essence_echo
+    - reversion,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace,cycle=members,if=cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready&cycle.range>0&cycle.range<=40
+
+  auto_target:
+    - target_enemy,if=player.combat&(!target.exists|target.dead|target.friendly)&active_enemies>0
+    - target_enemy,if=player.combat&!target.valid&active_enemies>0
+
+  dispel:
+    # Cauterizing Flame removes magic/bleed/poison/curse from allies
+    - cauterizing_flame,cycle=members,if=config.auto_dispel&cycle.dispelable.list&cycle.range>0&cycle.range<=40
+
+  emergency_healing:
+    # Rewind — mass emergency heal based on recent damage taken; true last resort
+    - rewind,interrupt=true,range_check=none,if=var.rewind_ready&var.group_critical
+    # Verdant Embrace — instant single-target burst on dying tank/member
+    - verdant_embrace,cycle=tanks,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
+    - verdant_embrace,cycle=members,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
+    # Merithra's Blessing proc → Reversion on emergency target (instant burst + HoT)
+    - reversion,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
+    # Emergency Reversion on anyone critical
+    - reversion,cycle=members,interrupt=true,if=cycle.health.pct<config.emergency_hp&cycle.buff.reversion.down&cycle.range>0&cycle.range<=40
+    - reversion.player,interrupt=true,if=var.player_low
+
+  defensive_cooldowns:
+    # Obsidian Scales — personal physical damage reduction; use when threatened
+    - obsidian_scales,range_check=none,if=cooldown.obsidian_scales.ready&health.pct<50
+    # Zephyr — 20% AoE damage reduction for 5 closest allies; pre-emptive on predictable AoE
+    - zephyr,range_check=none,if=var.zephyr_ready&var.group_heavy_damage
+
+  major_cooldowns:
+    # Tip the Scales (Chronowarden) — frontloaded haste/CDR; use right before heavy healing
+    # Temporal Burst is frontloaded so fire at the start of a damage window
+    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&var.group_heavy_damage&player.combat
+    - tip_the_scales,range_check=none,if=var.tip_the_scales_ready&var.chrono_build&state.cds&player.combat
+    # Stasis — store 3 healing spells for later burst; fire with state.cds or pre-boss
+    # Default combo: Dream Breath → Emerald Blossom → Temporal Anomaly (TA last = Echoes not wasted)
+    - stasis,range_check=none,if=var.stasis_ready&state.cds&player.combat
+    # Dream Flight (Flameshaper alternative to Stasis) — flying AoE heal + long HoT
+    - dream_flight,range_check=none,if=var.dream_flight_ready&var.flame_build&var.group_heavy_damage&player.combat
+    - dream_flight,range_check=none,if=var.dream_flight_ready&var.flame_build&state.cds&player.combat
+
+  trinkets:
+    - trinket_1,if=trinket_1.ready&config.trinket_usage!=0&((config.trinket_usage=1)|(config.trinket_usage=2&(var.tip_the_scales_ready|buff.temporal_burst.up))|(config.trinket_usage=3&var.group_heavy_damage))
+    - trinket_2,if=trinket_2.ready&config.trinket_usage!=0&((config.trinket_usage=1)|(config.trinket_usage=2&(var.tip_the_scales_ready|buff.temporal_burst.up))|(config.trinket_usage=3&var.group_heavy_damage))
+
+  temporal_anomaly_rotation:
+    # Always cast Temporal Anomaly on cooldown — critical for Resonating Sphere Echo spread
+    # Nozdormu Adept (Chronowarden) reduces cooldown significantly
+    - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
+
+  dream_breath_rotation:
+    # Dream Breath on cooldown — Rank 1 for passive maintenance, max rank for burst damage
+    # Rank 3 guarantees a Merithra's Blessing proc (talent)
+    # Flameshaper: Legacy of the Lifebinder grants 2 charges
+    - dream_breath,if=var.dream_breath_ready&player.combat
+
+  essence_management:
+    # Essence Burst → Emerald Blossom (highest priority, free cost)
+    # With Twin Echoes talent, EB generates free Echo on nearby allies
+    # EB no longer consumes active Echo buffs in Midnight — cast freely
+    - emerald_blossom,target=lowest,if=var.essence_burst_up&var.mana_ok&player.combat
+    # Without Essence Burst, burn Essence on Echo to build up ramp or maintain coverage
+    # Spend on Emerald Blossom only when group needs AoE healing and Essence Burst is not active
+    - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&var.mana_ok&player.combat
+    # Echo application — core Essence spender; aim to keep tanks and injured members Echo'd
+    - echo,cycle=tanks,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
+    - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
+
+  echo_consumption:
+    # Consume Echo buffs with the strongest available spell
+    # Priority: Merithra's Blessing proc → Reversion (spiritbloom-like bounce + HoT + damage reduction)
+    #           → Verdant Embrace (single-target burst)
+    #           → Reversion (maintenance HoT + Golden Hour / Grace Period procs)
+
+    # 1. Merithra's Blessing proc active — fire Reversion on the most injured Echo target
+    #    This is the highest-value healing in the toolkit; never let the proc go to waste
+    - reversion,cycle=tanks,if=var.merithra_proc&cycle.health.pct<config.tank_heal_hp&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    # Proc is up but no good Echo target — still consume on any low-HP member
+    - reversion,cycle=members,if=var.merithra_proc&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+
+    # 2. Reversion HoT — standard Echo consumer; also generates Essence Burst procs
+    #    Keep tanks covered first; spread to group during heavy damage
+    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
+    # Refresh Reversion before it falls off on active healing targets
+    - reversion,cycle=members,if=cycle.buff.reversion.refreshable&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+
+    # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
+    - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+
+  fire_breath_leaping_flames:
+    # Fire Breath on cooldown — generates Leaping Flames buff for multi-target Living Flame
+    # Higher rank = more Living Flame targets (Rank 4 = 4 extra targets)
+    # Cast at rank 3-4 during Living Flame Essence Burst windows for maximum Essence generation
+    - fire_breath,if=var.fire_breath_ready&target.valid&player.combat
+
+  mouseover_healing:
+    # Verdant Embrace on mouseover — instant single-target burst
+    - verdant_embrace.mouseover,interrupt=true,if=var.verdant_embrace_ready&mouseover.health.pct<config.emergency_hp
+    # Reversion on mouseover when Merithra's Blessing proc is active
+    - reversion.mouseover,interrupt=true,if=var.merithra_proc&mouseover.health.pct<config.member_heal_hp
+    - reversion.mouseover,if=mouseover.health.pct<config.reversion_hp&mouseover.buff.reversion.down
+
+  movement:
+    # Only instant casts while moving
+    - echo,target=lowest,if=player.moving&var.have_essence_echo&var.needs_member_healing
+    - reversion,cycle=members,if=player.moving&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up
+
+  dps_fillers:
+    # Living Flame — primary filler; offensive use refunds mana, generates Essence Burst
+    # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets (big Essence Burst gen)
+    - living_flame,if=var.leaping_flames_up&target.valid
+    - living_flame,if=target.valid
+    # Disintegrate — damage + Energy Loop mana return (Mythic+/if talented)
+    - disintegrate,if=talent.energy_loop.enabled&target.valid&var.mana_ok
+
+  racial_defensive:
+    - stoneform,if=player.dispelable
+    - fireblood,if=player.dispelable
+    - will_of_the_forsaken,if=player.feared|player.charmed
+    - escape_artist,if=player.rooted
+    - gift_of_the_naaru,if=health.pct<30
+    - stoneform,if=health.pct<30
+    - fireblood,if=health.pct<30
+
+  racial_offensive:
+    - berserking,if=var.group_heavy_damage|buff.temporal_burst.up
+    - blood_fury,if=var.group_heavy_damage|buff.temporal_burst.up
+    - ancestral_call,if=var.group_heavy_damage|buff.temporal_burst.up
+    - fireblood,if=(var.group_heavy_damage|buff.temporal_burst.up)&!player.dispelable
+
+  main:
+    - call_action_list,name=spell_queue
+    - call_action_list,name=sanity_checks
+    - call_action_list,name=pre_pull_setup,if=!player.combat&target.exists&target.boss
+    - call_action_list,name=out_of_combat,if=!player.combat
+    - return,if=!player.combat
+    - call_action_list,name=auto_target,if=player.combat
+    # Emergency healing — interrupts everything
+    - call_action_list,name=emergency_healing,if=var.needs_emergency
+    - call_action_list,name=defensive_cooldowns
+    # Dispels
+    - call_action_list,name=dispel
+    - call_action_list,name=racial_defensive
+    # Cooldowns
+    - call_action_list,name=major_cooldowns
+    - call_action_list,name=trinkets
+    # Core healing engine — this block is the heart of Preservation Evoker
+    # Temporal Anomaly and Dream Breath run first to never fall off cooldown
+    - call_action_list,name=temporal_anomaly_rotation
+    - call_action_list,name=dream_breath_rotation
+    # Essence management: Essence Burst → Emerald Blossom, then Echo application
+    - call_action_list,name=essence_management
+    # Consume Echo buffs: Merithra's Blessing → Reversion → Verdant Embrace
+    - call_action_list,name=echo_consumption
+    # Fire Breath on cooldown for Leaping Flames
+    - call_action_list,name=fire_breath_leaping_flames
+    # Mouseover healing
+    - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
+    # Movement fallback
+    - call_action_list,name=movement,if=player.moving
+    # DPS fillers — Living Flame generates Essence Burst; blocked during active casts
+    - return,if=player.channeling
+    - call_action_list,name=racial_offensive
+    - call_action_list,name=dps_fillers
