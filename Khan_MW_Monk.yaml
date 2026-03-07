@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.8.0
 author: Khan
 spec: 270
 name: Khan's Mistweaver Monk
@@ -17,57 +17,57 @@ config:
   emergency_hp:
     label: "Emergency HP %"
     type: slider
-    min: 10
-    max: 40
+    min: 1
+    max: 100
     default: 25
 
   tank_heal_hp:
     label: "Tank Heal HP %"
     type: slider
-    min: 40
-    max: 90
+    min: 1
+    max: 100
     default: 70
 
   member_heal_hp:
     label: "Member Heal HP %"
     type: slider
-    min: 50
-    max: 95
-    default: 80
+    min: 1
+    max: 100
+    default: 85
 
   enveloping_hp:
     label: "Enveloping Mist HP %"
     type: slider
-    min: 30
-    max: 80
+    min: 1
+    max: 100
     default: 55
 
   soothing_mist_hp:
     label: "Soothing Mist HP %"
     type: slider
-    min: 20
-    max: 60
+    min: 1
+    max: 100
     default: 40
 
   vivify_group_count:
     label: "Vivify Min Injured"
     type: slider
-    min: 2
+    min: 1
     max: 5
     default: 3
 
   mana_tea_threshold:
     label: "Mana Tea Below %"
     type: slider
-    min: 20
-    max: 70
+    min: 1
+    max: 100
     default: 50
 
   low_mana_threshold:
     label: "Low Mana Conserve %"
     type: slider
-    min: 10
-    max: 40
+    min: 1
+    max: 100
     default: 25
 
   yulon_trigger_count:
@@ -192,10 +192,18 @@ lists:
     - renewing_mist,cycle=members,if=cycle.buff.renewing_mist.down&cycle.range>0&cycle.range<=40
 
   out_of_combat:
+    # Off-GCD instant self-heal — always fires
+    - expel_harm,range_check=none,if=var.player_needs_healing&cooldown.expel_harm.ready
+    # Start Soothing Mist FIRST — establishes the channel all instants fire into
+    - soothing_mist.player,range_check=none,if=var.player_needs_healing&!player.channeling
+    # Fire instants INTO the active SM channel (Midnight mechanic — SM continues uninterrupted)
+    # Combo: SM → EnvM → EnvM refresh as needed (no Vivify OOC — no combat clouds)
+    - enveloping_mist.player,casting_check=soothing_mist,range_check=none,if=var.player_needs_healing&buff.enveloping_mist.remains<3
+    - renewing_mist.player,casting_check=soothing_mist,range_check=none,if=var.player_needs_healing&buff.renewing_mist.down
+    # Group members with SM active
+    - enveloping_mist,casting_check=soothing_mist,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.buff.enveloping_mist.remains<3&cycle.range>0&cycle.range<=40
+    # Spread ReM when no one needs active healing
     - renewing_mist,cycle=members,if=cycle.buff.renewing_mist.down&cycle.range>0&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.mana_ok&cycle.health.pct<70&cycle.range>0&cycle.range<=40
-    - vivify,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
-    - vivify.player,if=var.player_needs_healing
 
   auto_target:
     - target_enemy,if=player.combat&(!target.exists|target.dead|target.friendly)&active_enemies>0
@@ -206,9 +214,9 @@ lists:
     - detox,cycle=members,if=config.auto_dispel&cycle.dispelable.list&cycle.range>0&cycle.range<=40
 
   emergency_healing:
-    # Life Cocoon — instant absorb shield on dying target, not on GCD
-    - life_cocoon,cycle=members,interrupt=true,range_check=none,if=var.life_cocoon_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
-    - life_cocoon.player,interrupt=true,range_check=none,if=var.life_cocoon_ready&var.player_low
+    # Life Cocoon — instant absorb shield on dying target, combat only (long CD, save for fights)
+    - life_cocoon,cycle=members,interrupt=true,range_check=none,if=player.combat&var.life_cocoon_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
+    - life_cocoon.player,interrupt=true,range_check=none,if=player.combat&var.life_cocoon_ready&var.player_low
     # Revival / Restoral — mass group heal for critical states
     - revival,interrupt=true,range_check=none,if=cooldown.revival.ready&var.group_critical
     - restoral,interrupt=true,range_check=none,if=talent.restoral.enabled&cooldown.restoral.ready&var.group_critical
@@ -240,7 +248,7 @@ lists:
     # Mana Tea — restore mana when running low
     - mana_tea,range_check=none,if=player.combat&var.mana_tea_ready&mana.pct<config.mana_tea_threshold
     # Sheilun's Gift — use as a powerful AoE burst during heavy damage
-    - sheiluns_gift,if=player.combat&cooldown.sheiluns_gift.ready&var.group_heavy_damage&var.mana_ok
+    - vivify,if=player.combat&cooldown.vivify.ready&var.group_heavy_damage&var.mana_ok
 
   trinkets:
     - trinket_1,if=trinket_1.ready&config.trinket_usage!=0&((config.trinket_usage=1)|(config.trinket_usage=2&var.in_celestial_window)|(config.trinket_usage=3&var.group_heavy_damage))
@@ -252,14 +260,14 @@ lists:
   #           3) Renewing Mist for HoT extension + Secret Infusion haste
   thunder_focus_tea_usage:
     # Pop TFT for emergency → immediately follow with EnvM instant cast
-    - thunder_focus_tea,interrupt=true,range_check=none,if=var.tft_ready&!var.tft_up&var.tank_emergency
+    - thunder_focus_tea,interrupt=true,range_check=none,if=player.combat&var.tft_ready&!var.tft_up&var.tank_emergency
     - enveloping_mist,cycle=tanks,if=var.tft_target_envm&cycle.range>0&cycle.range<=40
     - enveloping_mist,cycle=members,if=var.tft_target_envm&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40
     # Pop TFT during celestial window → RSK for faster resets
-    - thunder_focus_tea,interrupt=true,range_check=none,if=var.tft_ready&!var.tft_up&var.in_celestial_window&var.rsk_ready
+    - thunder_focus_tea,interrupt=true,range_check=none,if=player.combat&var.tft_ready&!var.tft_up&var.in_celestial_window&var.rsk_ready
     - rising_sun_kick,if=var.tft_target_rsk&target.valid
     # Pop TFT on ReM for extension + haste (Secret Infusion) — normal uptime
-    - thunder_focus_tea,interrupt=true,range_check=none,if=var.tft_ready&!var.tft_up&!var.needs_emergency&var.rem_charges_have
+    - thunder_focus_tea,interrupt=true,range_check=none,if=player.combat&var.tft_ready&!var.tft_up&!var.needs_emergency&var.rem_charges_have
     - renewing_mist,cycle=members,if=var.tft_target_rem&cycle.range>0&cycle.range<=40
     # TFT is up but nothing matched above — burn it on RSK to not waste it
     - rising_sun_kick,if=var.tft_up&target.valid
@@ -321,9 +329,8 @@ lists:
   group_healing:
     # RSK to extend all HoTs when coverage is wide (highest throughput)
     - rising_sun_kick,if=var.rsk_ready&var.rem_wide_coverage&target.valid
-    # Sheilun's Gift — powerful instant group heal during hairy moments
-    - sheiluns_gift,if=cooldown.sheiluns_gift.ready&group.count(cycle.health.pct<80)>=3&var.mana_ok
-    # Vivify for group — bounces to all ReM targets via Invigorating Mists
+    # Vivify — bounces to all ReM targets via Invigorating Mists; use as burst when group is hurt
+    - vivify,cycle=members,if=group.count(cycle.health.pct<80)>=3&cycle.health.pct<config.member_heal_hp&var.mana_ok&cycle.range>0&cycle.range<=40
     - vivify,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
     # Essence Font — channel HoTs on up to 18 allies (talent check)
     - essence_font,if=talent.essence_font.enabled&group.count(cycle.health.pct<config.member_heal_hp)>=5&var.mana_healthy
@@ -342,7 +349,7 @@ lists:
     # Vivify with EnvM up for efficient spot healing
     - vivify,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
     - vivify.player,if=var.player_needs_healing
-    # Soothing Mist — channel for consistent sustained damage (EnvM/Vivify interrupt it naturally in Midnight)
+    # Soothing Mist — channel for consistent sustained healing (EnvM/Vivify with interrupt=true can redirect it in Midnight)
     - soothing_mist,cycle=members,if=cycle.health.pct<config.soothing_mist_hp&cycle.range>0&cycle.range<=40
 
   mouseover_healing:
@@ -359,16 +366,15 @@ lists:
     - blackout_kick,if=player.moving&var.teachings_up&target.valid
     - expel_harm,if=player.moving&var.player_needs_healing&cooldown.expel_harm.ready
 
-  # DPS fillers — generate passive healing through Ancient Teachings / Crane Style
-  # Rising Sun Kick is always the top priority filler for its healing contribution
+  # DPS fillers — all instant casts; generate passive healing via Ancient Teachings / Crane Style
+  # Rising Sun Kick is always top priority for its healing contribution and HoT extension
   dps_fillers:
     - rising_sun_kick,if=var.rsk_ready&target.valid
     - jadefire_stomp,if=talent.jadefire_stomp.enabled&target.valid&active_enemies>=1
     - blackout_kick,if=var.teachings_up&target.valid
     - chi_burst,if=talent.chi_burst.enabled&target.valid
-    - tiger_palm,if=target.valid
     - spinning_crane_kick,if=active_enemies>=3&target.valid
-    - crackling_jade_lightning,if=target.valid&!player.moving,global_delay=200
+    - tiger_palm,if=target.valid
 
   racial_defensive:
     - stoneform,if=player.dispelable
@@ -395,6 +401,9 @@ lists:
     # Emergency healing fires first — interrupts everything including channels
     - call_action_list,name=emergency_healing,if=var.needs_emergency
     - call_action_list,name=defensive_cooldowns
+    # Block DPS channels from eating healing GCDs — emergency heals above use interrupt=true to break through
+    # Soothing Mist channels naturally here; only emergency_healing can interrupt it
+    - return,if=player.channeling
     # Dispels
     - call_action_list,name=dispel
     - call_action_list,name=racial_defensive
@@ -414,7 +423,6 @@ lists:
     # Mouseover and movement support
     - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
     - call_action_list,name=movement,if=player.moving
-    # DPS fillers — blocked during active channels (Soothing Mist, Essence Font, etc.)
-    - return,if=player.channeling
+    # DPS fillers — instant casts only; no channels
     - call_action_list,name=racial_offensive,if=var.in_celestial_window
     - call_action_list,name=dps_fillers
