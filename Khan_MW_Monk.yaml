@@ -1,4 +1,4 @@
-version: 1.8.0
+version: 1.8.1
 author: Khan
 spec: 270
 name: Khan's Mistweaver Monk
@@ -232,7 +232,7 @@ lists:
 
   defensive_cooldowns:
     # Fortifying Brew — personal defensive
-    - fortifying_brew,interrupt=true,range_check=none,if=var.player_low&cooldown.fortifying_brew.ready
+    - fortifying_brew,interrupt=true,range_check=none,if=player.combat&var.player_low&cooldown.fortifying_brew.ready
     # Expel Harm — cheap self heal that also deals damage
     - expel_harm,range_check=none,if=health.pct<config.member_heal_hp&cooldown.expel_harm.ready
 
