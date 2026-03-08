@@ -1,4 +1,4 @@
-version: 1.5.5
+version: 1.5.6
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -365,7 +365,7 @@ lists:
 
   movement:
     # Only instant casts while moving
-    - echo,target=lowest,if=player.moving&var.have_essence_echo&var.needs_member_healing
+    - echo,cycle=members,if=player.moving&var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40
     - reversion,cycle=members,if=player.moving&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
     - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up
