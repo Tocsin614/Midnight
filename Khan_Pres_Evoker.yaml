@@ -1,4 +1,4 @@
-version: 1.6.6
+version: 1.6.8
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -132,6 +132,20 @@ config:
     type: checkbox
     default: false
 
+  emerald_blossom_hp:
+    label: "Emerald Blossom HP %"
+    type: slider
+    min: 50
+    max: 95
+    default: 80
+
+  verdant_embrace_hp:
+    label: "Verdant Embrace HP %"
+    type: slider
+    min: 40
+    max: 95
+    default: 80
+
 variables:
 
   # === HERO BUILD DETECTION ===
@@ -228,8 +242,8 @@ lists:
     - echo,cycle=members,if=cycle.health.pct<90&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&var.have_essence_echo
     - reversion.player,if=health.pct<config.member_heal_hp&buff.reversion.down
     - reversion,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
-    - verdant_embrace.player,if=health.pct<config.member_heal_hp&var.verdant_embrace_ready
-    - verdant_embrace,cycle=members,if=cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready&cycle.range>0&cycle.range<=40
+    - verdant_embrace.player,if=health.pct<config.verdant_embrace_hp&var.verdant_embrace_ready
+    - verdant_embrace,cycle=members,if=cycle.health.pct<config.verdant_embrace_hp&var.verdant_embrace_ready&cycle.range>0&cycle.range<=40
 
   auto_target:
     - target_enemy,if=player.combat&(!target.exists|target.dead|target.friendly)&active_enemies>0
@@ -301,19 +315,20 @@ lists:
     - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
 
   dream_breath_rotation:
-    # Start lines only — release is handled by empower_releases at top of main
-    # !player.casting.dream_breath prevents starting a new cast while already empowering
-    - dream_breath,empower_to=1,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=1&!player.casting.dream_breath
-    - dream_breath,empower_to=2,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=2&!player.casting.dream_breath
-    - dream_breath,empower_to=3,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=3&!player.casting.dream_breath
-    - dream_breath,empower_to=4,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=4&!player.casting.dream_breath
+    # Only cast when healing is actually needed — group count check uses group_heal_count slider
+    # Also fires for tank emergency or any member critically low
+    # Start lines only — release handled by empower_releases at top of main
+    - dream_breath,empower_to=1,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=1&!player.casting.dream_breath&(var.group_heavy_damage|var.needs_tank_healing|var.needs_emergency)
+    - dream_breath,empower_to=2,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=2&!player.casting.dream_breath&(var.group_heavy_damage|var.needs_tank_healing|var.needs_emergency)
+    - dream_breath,empower_to=3,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=3&!player.casting.dream_breath&(var.group_heavy_damage|var.needs_tank_healing|var.needs_emergency)
+    - dream_breath,empower_to=4,if=var.dream_breath_ready&player.combat&config.dream_breath_empower=4&!player.casting.dream_breath&(var.group_heavy_damage|var.needs_tank_healing|var.needs_emergency)
 
   essence_management:
     # Essence Burst → Emerald Blossom (highest priority, free cost)
     # With Twin Echoes talent, EB generates free Echo on nearby allies
-    - emerald_blossom,target=lowest,if=var.essence_burst_up&var.needs_member_healing&var.mana_ok&player.combat
+    - emerald_blossom,target=lowest,if=var.essence_burst_up&group.lowest.health.pct<config.emerald_blossom_hp&var.mana_ok&player.combat
     # Spend on Emerald Blossom for AoE healing when group is taking heavy damage
-    - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&var.needs_member_healing&var.mana_ok&player.combat
+    - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&group.lowest.health.pct<config.emerald_blossom_hp&var.mana_ok&player.combat
     # Essence cap safety dump — spend before overcapping when no healing need exists
     - echo,cycle=members,if=essence>=4&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&player.combat
 
@@ -337,15 +352,18 @@ lists:
     - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.health.pct<60&var.needs_member_healing&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
 
     # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
-    - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.tank_heal_hp
-    - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
-    - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.member_heal_hp
-    - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
+    - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.verdant_embrace_hp
+    - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.verdant_embrace_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.verdant_embrace_hp&cycle.range>0&cycle.range<=40
 
   living_flame_heal_filler:
     # Last-resort spot heal — only when Verdant Embrace AND Dream Breath both on cooldown
     - living_flame.player,if=health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0
     - living_flame,cycle=members,if=cycle.health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
+    # Chrono Flame (Chronowarden) — instant ST heal filler when stronger tools are on CD
+    - chrono_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
+    - chrono_flame.player,if=var.chrono_build&health.pct<config.member_heal_hp&var.verdant_embrace_ready=0
 
   fire_breath_leaping_flames:
     # Start lines only — release is handled by empower_releases at top of main
@@ -373,16 +391,17 @@ lists:
     - echo,cycle=members,if=player.moving&var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40
     - reversion.player,if=player.moving&buff.reversion.down&health.pct<config.reversion_hp
     - reversion,cycle=members,if=player.moving&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
-    - verdant_embrace.player,if=player.moving&var.verdant_embrace_ready&health.pct<config.member_heal_hp
-    - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
-    - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up&var.needs_member_healing
+    - verdant_embrace.player,if=player.moving&var.verdant_embrace_ready&health.pct<config.verdant_embrace_hp
+    - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.verdant_embrace_hp&cycle.range>0&cycle.range<=40
+    - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up&group.lowest.health.pct<config.emerald_blossom_hp
 
   dps_fillers:
     # Deep Breath — AoE damage when group is healthy and 3+ enemies are present
-    # Locks you in flight briefly; only use when healing situation is comfortable
     - deep_breath,if=config.deep_breath_enabled&active_enemies>=3&group.lowest.health.pct>80&target.valid
+    # Chrono Flame (Chronowarden) — instant ST filler; also usable as emergency spot heal
+    - chrono_flame,if=var.chrono_build&target.valid
     # Living Flame — primary filler; offensive use refunds mana, generates Essence Burst
-    # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets (big Essence Burst gen)
+    # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets
     - living_flame,if=var.leaping_flames_up&target.valid
     - living_flame,if=target.valid
     # Disintegrate — damage + Energy Loop mana return (if talented)
