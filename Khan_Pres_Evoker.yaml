@@ -1,4 +1,4 @@
-version: 1.5.6
+version: 1.5.7
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -302,10 +302,10 @@ lists:
     # Essence Burst → Emerald Blossom (highest priority, free cost)
     # With Twin Echoes talent, EB generates free Echo on nearby allies
     # EB no longer consumes active Echo buffs in Midnight — cast freely
-    - emerald_blossom,target=lowest,if=var.essence_burst_up&var.mana_ok&player.combat
+    - emerald_blossom,target=lowest,if=var.essence_burst_up&var.needs_member_healing&var.mana_ok&player.combat
     # Without Essence Burst, burn Essence on Echo to build up ramp or maintain coverage
     # Spend on Emerald Blossom only when group needs AoE healing and Essence Burst is not active
-    - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&var.mana_ok&player.combat
+    - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&var.needs_member_healing&var.mana_ok&player.combat
     # Echo application — core Essence spender; aim to keep tanks and injured members Echo'd
     - echo,cycle=tanks,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
     - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
@@ -368,7 +368,7 @@ lists:
     - echo,cycle=members,if=player.moving&var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40
     - reversion,cycle=members,if=player.moving&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
-    - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up
+    - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up&var.needs_member_healing
 
   dps_fillers:
     # Deep Breath — AoE damage when group is healthy and 3+ enemies are present
