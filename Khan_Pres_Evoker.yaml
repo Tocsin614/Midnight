@@ -1,4 +1,4 @@
-version: 1.5.7
+version: 1.6.6
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -192,18 +192,15 @@ variables:
 lists:
 
   empower_releases:
-    # Release-only lines — casting_check gates these to ONLY fire while mid-empower
-    # Top priority in main so the release press is never blocked by other rotation logic
-    # Dream Breath releases
+    # casting_check gates these to ONLY fire while mid-empower
+    # Top priority in main so the release is never blocked
     - dream_breath,casting_check=dream_breath,empower_to=1,if=config.dream_breath_empower=1
     - dream_breath,casting_check=dream_breath,empower_to=2,if=config.dream_breath_empower=2
     - dream_breath,casting_check=dream_breath,empower_to=3,if=config.dream_breath_empower=3
     - dream_breath,casting_check=dream_breath,empower_to=4,if=config.dream_breath_empower=4
-    # Fire Breath releases — Chronowarden
     - fire_breath,casting_check=fire_breath,empower_to=1,if=var.chrono_build&config.fire_breath_empower_chrono=1
     - fire_breath,casting_check=fire_breath,empower_to=2,if=var.chrono_build&config.fire_breath_empower_chrono=2
     - fire_breath,casting_check=fire_breath,empower_to=3,if=var.chrono_build&config.fire_breath_empower_chrono=3
-    # Fire Breath releases — Flameshaper
     - fire_breath,casting_check=fire_breath,empower_to=1,if=var.flame_build&config.fire_breath_empower_flame=1
     - fire_breath,casting_check=fire_breath,empower_to=2,if=var.flame_build&config.fire_breath_empower_flame=2
     - fire_breath,casting_check=fire_breath,empower_to=3,if=var.flame_build&config.fire_breath_empower_flame=3
@@ -227,8 +224,11 @@ lists:
     - temporal_anomaly,if=cooldown.temporal_anomaly.ready
 
   out_of_combat:
+    - echo.player,if=health.pct<90&buff.echo.down&var.have_essence_echo
     - echo,cycle=members,if=cycle.health.pct<90&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&var.have_essence_echo
+    - reversion.player,if=health.pct<config.member_heal_hp&buff.reversion.down
     - reversion,cycle=members,if=cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace.player,if=health.pct<config.member_heal_hp&var.verdant_embrace_ready
     - verdant_embrace,cycle=members,if=cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready&cycle.range>0&cycle.range<=40
 
   auto_target:
@@ -236,7 +236,7 @@ lists:
     - target_enemy,if=player.combat&!target.valid&active_enemies>0
 
   dispel:
-    # Cauterizing Flame removes magic/bleed/poison/curse from allies
+    - cauterizing_flame.player,if=config.auto_dispel&player.dispelable
     - cauterizing_flame,cycle=members,if=config.auto_dispel&cycle.dispelable.list&cycle.range>0&cycle.range<=40
 
   emergency_healing:
@@ -248,6 +248,7 @@ lists:
     - tip_the_scales,interrupt=true,range_check=none,if=var.tip_the_scales_ready&!buff.tip_the_scales.up&group.count(cycle.health.pct<config.emergency_hp)>=2
     - dream_breath,interrupt=true,if=buff.tip_the_scales.up&var.group_critical
     # Verdant Embrace — instant single-target burst on dying tank/member
+    - verdant_embrace.player,interrupt=true,if=var.verdant_embrace_ready&health.pct<15
     - verdant_embrace,cycle=tanks,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,interrupt=true,if=var.verdant_embrace_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=40
     # Time Dilation — external buff on tank or lowest member buying them extra time
@@ -285,7 +286,16 @@ lists:
     - trinket_1,if=trinket_1.ready&config.trinket_usage!=0&((config.trinket_usage=1)|(config.trinket_usage=2&(var.tip_the_scales_ready|buff.temporal_burst.up))|(config.trinket_usage=3&var.group_heavy_damage))
     - trinket_2,if=trinket_2.ready&config.trinket_usage!=0&((config.trinket_usage=1)|(config.trinket_usage=2&(var.tip_the_scales_ready|buff.temporal_burst.up))|(config.trinket_usage=3&var.group_heavy_damage))
 
-  temporal_anomaly_rotation:
+  echo_prep:
+    # Echo BEFORE major heals so the next heal gets duplicated
+    # .player lines handle self-targeting (cycle.range>0 excludes self)
+    - echo.player,if=var.have_essence_echo&buff.echo.down&health.pct<config.tank_heal_hp&player.combat
+    - echo,cycle=tanks,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40&player.combat
+    - echo.player,if=var.have_essence_echo&buff.echo.down&health.pct<config.emergency_hp&player.combat
+    - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40&player.combat
+    - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&var.group_heavy_damage&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
+
+
     # Always cast Temporal Anomaly on cooldown — critical for Resonating Sphere Echo spread
     # Nozdormu Adept (Chronowarden) reduces cooldown significantly
     - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
@@ -301,16 +311,10 @@ lists:
   essence_management:
     # Essence Burst → Emerald Blossom (highest priority, free cost)
     # With Twin Echoes talent, EB generates free Echo on nearby allies
-    # EB no longer consumes active Echo buffs in Midnight — cast freely
     - emerald_blossom,target=lowest,if=var.essence_burst_up&var.needs_member_healing&var.mana_ok&player.combat
-    # Without Essence Burst, burn Essence on Echo to build up ramp or maintain coverage
-    # Spend on Emerald Blossom only when group needs AoE healing and Essence Burst is not active
+    # Spend on Emerald Blossom for AoE healing when group is taking heavy damage
     - emerald_blossom,target=lowest,if=var.have_essence_blossom&var.group_heavy_damage&var.needs_member_healing&var.mana_ok&player.combat
-    # Echo application — core Essence spender; aim to keep tanks and injured members Echo'd
-    - echo,cycle=tanks,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
-    - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
-    # Essence cap safety dump — at 4 Essence with no Echo targets in range, spend before overcapping
-    # Covers healthy-group downtime where normal conditions would leave us wasting resources
+    # Essence cap safety dump — spend before overcapping when no healing need exists
     - echo,cycle=members,if=essence>=4&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&player.combat
 
   echo_consumption:
@@ -320,27 +324,27 @@ lists:
     #           → Reversion (maintenance HoT + Golden Hour / Grace Period procs)
 
     # 1. Merithra's Blessing proc active — fire Reversion on the most injured Echo target
-    #    This is the highest-value healing in the toolkit; never let the proc go to waste
-    - reversion,cycle=tanks,if=var.merithra_proc&cycle.health.pct<config.tank_heal_hp&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    - reversion.player,if=var.merithra_proc&health.pct<config.member_heal_hp
+    - reversion,cycle=tanks,if=var.merithra_proc&cycle.health.pct<config.tank_heal_hp&cycle.buff.echo.up&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.health.pct<config.member_heal_hp&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
     # Proc is up but no good Echo target — still consume on any low-HP member
-    - reversion,cycle=members,if=var.merithra_proc&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=var.merithra_proc&cycle.health.pct<config.member_heal_hp&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
 
-    # 2. Reversion HoT — standard Echo consumer; also generates Essence Burst procs
-    #    Keep tanks covered first; spread to group during heavy damage
-    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
-    # Refresh Reversion before it falls off on active healing targets
-    - reversion,cycle=members,if=cycle.buff.reversion.refreshable&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
+    # 2. Reversion HoT — time_to_die<7 means they just took a burst of damage recently
+    #    which is exactly when Reversion's "reverse last 5s damage" mechanic has real value
+    - reversion.player,if=buff.reversion.down&health.pct<60&var.needs_member_healing
+    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.health.pct<config.tank_heal_hp&var.needs_member_healing&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.health.pct<60&var.needs_member_healing&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
 
     # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
+    - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.tank_heal_hp
     - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.tank_heal_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.member_heal_hp
     - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
 
   living_flame_heal_filler:
-    # Living Flame as a last-resort spot heal — only when Verdant Embrace AND Dream Breath
-    # are both on cooldown and target still needs healing (per Icy Veins: desperate moments only)
-    # Never use in raid; acceptable in Mythic+ when stronger tools aren't available
+    # Last-resort spot heal — only when Verdant Embrace AND Dream Breath both on cooldown
+    - living_flame.player,if=health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0
     - living_flame,cycle=members,if=cycle.health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
 
   fire_breath_leaping_flames:
@@ -364,9 +368,12 @@ lists:
     - reversion.mouseover,if=mouseover.health.pct<config.reversion_hp&mouseover.buff.reversion.down
 
   movement:
-    # Only instant casts while moving
+    # Only instant casts while moving — .player lines cover self when solo
+    - echo.player,if=player.moving&var.have_essence_echo&buff.echo.down&health.pct<config.echo_hp
     - echo,cycle=members,if=player.moving&var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40
+    - reversion.player,if=player.moving&buff.reversion.down&health.pct<config.reversion_hp
     - reversion,cycle=members,if=player.moving&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40
+    - verdant_embrace.player,if=player.moving&var.verdant_embrace_ready&health.pct<config.member_heal_hp
     - verdant_embrace,cycle=members,if=player.moving&var.verdant_embrace_ready&cycle.health.pct<config.member_heal_hp&cycle.range>0&cycle.range<=40
     - emerald_blossom,target=lowest,if=player.moving&var.essence_burst_up&var.needs_member_healing
 
@@ -419,6 +426,7 @@ lists:
     # Core healing engine — Temporal Anomaly and Dream Breath never fall off cooldown
     # These also handle their own empower release lines via casting_check
     - call_action_list,name=temporal_anomaly_rotation
+    - call_action_list,name=echo_prep
     - call_action_list,name=dream_breath_rotation
     # Essence management: Essence Burst → Emerald Blossom (Twin Echoes), then Echo spread
     - call_action_list,name=essence_management
@@ -431,6 +439,6 @@ lists:
     # Mouseover and movement
     - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
     - call_action_list,name=movement,if=player.moving
-    # DPS fillers — Leaping Flames Living Flame first for Essence Burst gen
+    # DPS fillers — only when group is healthy; healing always takes priority
     - call_action_list,name=racial_offensive
-    - call_action_list,name=dps_fillers
+    - call_action_list,name=dps_fillers,if=!var.needs_member_healing
