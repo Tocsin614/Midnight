@@ -1,4 +1,4 @@
-version: 1.6.8
+version: 1.6.9
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -362,8 +362,8 @@ lists:
     - living_flame.player,if=health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0
     - living_flame,cycle=members,if=cycle.health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
     # Chrono Flame (Chronowarden) — instant ST heal filler when stronger tools are on CD
-    - chrono_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
-    - chrono_flame.player,if=var.chrono_build&health.pct<config.member_heal_hp&var.verdant_embrace_ready=0
+    - living_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
+    - living_flame.player,if=var.chrono_build&health.pct<config.member_heal_hp&var.verdant_embrace_ready=0
 
   fire_breath_leaping_flames:
     # Start lines only — release is handled by empower_releases at top of main
@@ -399,7 +399,7 @@ lists:
     # Deep Breath — AoE damage when group is healthy and 3+ enemies are present
     - deep_breath,if=config.deep_breath_enabled&active_enemies>=3&group.lowest.health.pct>80&target.valid
     # Chrono Flame (Chronowarden) — instant ST filler; also usable as emergency spot heal
-    - chrono_flame,if=var.chrono_build&target.valid
+    - living_flame,if=var.chrono_build&target.valid
     # Living Flame — primary filler; offensive use refunds mana, generates Essence Burst
     # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets
     - living_flame,if=var.leaping_flames_up&target.valid
