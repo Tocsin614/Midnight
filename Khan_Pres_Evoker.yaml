@@ -1,4 +1,4 @@
-version: 1.6.9
+version: 1.7.4
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -155,7 +155,7 @@ variables:
 
   # === GROUP HEALTH STATE ===
   needs_emergency: group.lowest.health.pct<config.emergency_hp
-  needs_tank_healing: group.tanks.lowest.health.pct<config.tank_heal_hp
+  needs_tank_healing: group.tanks.lowest.range>0&group.tanks.lowest.health.pct<config.tank_heal_hp
   needs_member_healing: group.lowest.health.pct<config.member_heal_hp
   group_heavy_damage: group.count(cycle.health.pct<config.member_heal_hp)>=config.group_heal_count
   group_critical: group.count(cycle.health.pct<config.emergency_hp)>=3
@@ -398,14 +398,11 @@ lists:
   dps_fillers:
     # Deep Breath — AoE damage when group is healthy and 3+ enemies are present
     - deep_breath,if=config.deep_breath_enabled&active_enemies>=3&group.lowest.health.pct>80&target.valid
-    # Chrono Flame (Chronowarden) — instant ST filler; also usable as emergency spot heal
-    - living_flame,if=var.chrono_build&target.valid
-    # Living Flame — primary filler; offensive use refunds mana, generates Essence Burst
-    # After Fire Breath: Leaping Flames makes Living Flame hit multiple targets
+    # Disintegrate — top filler for both builds; Energy Loop procs per guides
+    - disintegrate,if=target.valid&var.mana_ok
+    # Living Flame — secondary filler; Leaping Flames window first for Essence Burst gen
     - living_flame,if=var.leaping_flames_up&target.valid
     - living_flame,if=target.valid
-    # Disintegrate — damage + Energy Loop mana return (if talented)
-    - disintegrate,if=talent.energy_loop.enabled&target.valid&var.mana_ok
 
   racial_defensive:
     - stoneform,if=player.dispelable
