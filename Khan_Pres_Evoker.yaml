@@ -1,4 +1,4 @@
-version: 1.8.0
+version: 1.8.1
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -158,7 +158,7 @@ variables:
   # === HERO BUILD DETECTION ===
   # Chronowarden gate talent: Chrono Flame (first pick in Chronowarden tree)
   # Flameshaper gate talent: Legacy of the Lifebinder (first pick in Flameshaper tree)
-  chrono_build: config.hero_build=1|(talent.chrono_flame.enabled&config.hero_build=0)
+  chrono_build: config.hero_build=1|(talent.chrono_flames.enabled&config.hero_build=0)
   flame_build: config.hero_build=2|(talent.legacy_of_the_lifebinder.enabled&config.hero_build=0)
 
   # === GROUP HEALTH STATE ===
@@ -372,14 +372,14 @@ lists:
   living_flame_heal_filler:
     # Truly desperate only — per Icy Veins, never in raid, M+ last resort when all else on CD
     - living_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0
-    - chrono_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0
+    - chrono_flames.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0
     - living_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
-    - chrono_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
+    - chrono_flames,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
     # Chrono Flame ST spot heal when stronger tools are on CD
     - living_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
-    - chrono_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
+    - chrono_flames,cycle=members,if=var.chrono_build&cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
     - living_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0
-    - chrono_flame.player,if=var.chrono_build&health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0
+    - chrono_flames.player,if=var.chrono_build&health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0
 
   fire_breath_leaping_flames:
     # Start lines only — release is handled by empower_releases at top of main
@@ -415,9 +415,9 @@ lists:
     - disintegrate,if=target.valid&var.mana_ok
     # Living Flame / Chrono Flame (morph) — list both, framework uses whichever is active
     - living_flame,if=var.leaping_flames_up&target.valid
-    - chrono_flame,if=var.leaping_flames_up&target.valid&var.chrono_build
+    - chrono_flames,if=var.leaping_flames_up&target.valid&var.chrono_build
     - living_flame,if=target.valid
-    - chrono_flame,if=target.valid&var.chrono_build
+    - chrono_flames,if=target.valid&var.chrono_build
 
   racial_defensive:
     - stoneform,if=player.dispelable
