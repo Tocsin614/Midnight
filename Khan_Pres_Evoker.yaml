@@ -1,4 +1,4 @@
-version: 1.7.9
+version: 1.8.0
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -351,13 +351,12 @@ lists:
   echo_consumption:
     # Echo → Reversion is the PRIMARY consumer per guides
     # Grace Period + Golden Hour make this the highest value Echo spend
-    # No health gate — keeping Reversion up on everyone is the goal
 
-    # 1. Merithra's Blessing proc — Reversion on burst-hit targets first
-    - reversion.player,if=var.merithra_proc&health.pct<config.member_heal_hp
-    - reversion,cycle=tanks,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=var.merithra_proc&cycle.range>0&cycle.range<=40
+    # 1. Merithra's Blessing proc — interrupt to fire immediately on burst-hit targets
+    - reversion.player,interrupt=true,if=var.merithra_proc&health.pct<config.member_heal_hp
+    - reversion,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.range>0&cycle.range<=40
 
     # 2. Reversion maintenance — spread to anyone without it, Echo or not
     #    Golden Hour bounces extra healing on second cast; always worth maintaining
@@ -398,9 +397,6 @@ lists:
   mouseover_healing:
     # Verdant Embrace on mouseover — instant single-target burst
     - verdant_embrace.mouseover,interrupt=true,if=var.verdant_embrace_ready&mouseover.health.pct<config.emergency_hp
-    # Reversion on mouseover when Merithra's Blessing proc is active
-    - reversion.mouseover,interrupt=true,if=var.merithra_proc&mouseover.health.pct<config.member_heal_hp
-    - reversion.mouseover,if=mouseover.health.pct<config.reversion_hp&mouseover.buff.reversion.down
 
   movement:
     # Only instant casts while moving — .player lines cover self when solo
