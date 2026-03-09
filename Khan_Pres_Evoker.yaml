@@ -1,4 +1,4 @@
-version: 1.7.4
+version: 1.7.9
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -139,6 +139,13 @@ config:
     max: 95
     default: 80
 
+  living_flame_heal_hp:
+    label: "Living Flame Heal HP %"
+    type: slider
+    min: 20
+    max: 70
+    default: 50
+
   verdant_embrace_hp:
     label: "Verdant Embrace HP %"
     type: slider
@@ -149,9 +156,10 @@ config:
 variables:
 
   # === HERO BUILD DETECTION ===
-  # Chronowarden has Nozdormu Adept (reduced TA cooldown); fall back to dropdown
-  chrono_build: config.hero_build=1|(talent.nozdormu_adept.enabled&config.hero_build=0)
-  flame_build: config.hero_build=2|(!talent.nozdormu_adept.enabled&config.hero_build=0)
+  # Chronowarden gate talent: Chrono Flame (first pick in Chronowarden tree)
+  # Flameshaper gate talent: Legacy of the Lifebinder (first pick in Flameshaper tree)
+  chrono_build: config.hero_build=1|(talent.chrono_flame.enabled&config.hero_build=0)
+  flame_build: config.hero_build=2|(talent.legacy_of_the_lifebinder.enabled&config.hero_build=0)
 
   # === GROUP HEALTH STATE ===
   needs_emergency: group.lowest.health.pct<config.emergency_hp
@@ -309,10 +317,18 @@ lists:
     - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=40&player.combat
     - echo,cycle=members,if=var.have_essence_echo&cycle.buff.echo.down&var.group_heavy_damage&cycle.health.pct<config.echo_hp&cycle.range>0&cycle.range<=40&player.combat
 
-
+  temporal_anomaly_rotation:
     # Always cast Temporal Anomaly on cooldown — critical for Resonating Sphere Echo spread
     # Nozdormu Adept (Chronowarden) reduces cooldown significantly
     - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
+
+  reversion_spread:
+    # Temporal Anomaly → Reversion combo for 100% group Grace Period uptime
+    # Grace Period = 10% healing buff + damage reduction on all buffed members
+    # No health gate — this is a maintenance buff, not a reactive heal
+    - reversion.player,if=buff.reversion.down&player.combat
+    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
+    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
 
   dream_breath_rotation:
     # Only cast when healing is actually needed — group count check uses group_heal_count slider
@@ -333,37 +349,38 @@ lists:
     - echo,cycle=members,if=essence>=4&cycle.buff.echo.down&cycle.range>0&cycle.range<=40&player.combat
 
   echo_consumption:
-    # Consume Echo buffs with the strongest available spell
-    # Priority: Merithra's Blessing proc → Reversion (spiritbloom-like bounce + HoT + damage reduction)
-    #           → Verdant Embrace (single-target burst)
-    #           → Reversion (maintenance HoT + Golden Hour / Grace Period procs)
+    # Echo → Reversion is the PRIMARY consumer per guides
+    # Grace Period + Golden Hour make this the highest value Echo spend
+    # No health gate — keeping Reversion up on everyone is the goal
 
-    # 1. Merithra's Blessing proc active — fire Reversion on the most injured Echo target
+    # 1. Merithra's Blessing proc — Reversion on burst-hit targets first
     - reversion.player,if=var.merithra_proc&health.pct<config.member_heal_hp
-    - reversion,cycle=tanks,if=var.merithra_proc&cycle.health.pct<config.tank_heal_hp&cycle.buff.echo.up&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.health.pct<config.member_heal_hp&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
-    # Proc is up but no good Echo target — still consume on any low-HP member
-    - reversion,cycle=members,if=var.merithra_proc&cycle.health.pct<config.member_heal_hp&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
+    - reversion,cycle=tanks,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
+    - reversion,cycle=members,if=var.merithra_proc&cycle.range>0&cycle.range<=40
 
-    # 2. Reversion HoT — time_to_die<7 means they just took a burst of damage recently
-    #    which is exactly when Reversion's "reverse last 5s damage" mechanic has real value
-    - reversion.player,if=buff.reversion.down&health.pct<60&var.needs_member_healing
-    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.health.pct<config.tank_heal_hp&var.needs_member_healing&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
-    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.health.pct<60&var.needs_member_healing&cycle.time_to_die<7&cycle.range>0&cycle.range<=40
+    # 2. Reversion maintenance — spread to anyone without it, Echo or not
+    #    Golden Hour bounces extra healing on second cast; always worth maintaining
+    - reversion.player,if=buff.reversion.down&player.combat
+    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
+    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
 
-    # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
-    # 3. Verdant Embrace — instant burst heal; Chronowarden: triggers Reverberations → Primacy haste
+    # 3. Verdant Embrace — single-target burst; especially valuable on tanks
     - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.verdant_embrace_hp
     - verdant_embrace,cycle=tanks,if=var.verdant_embrace_ready&cycle.health.pct<config.verdant_embrace_hp&cycle.range>0&cycle.range<=40
     - verdant_embrace,cycle=members,if=var.verdant_embrace_ready&cycle.health.pct<config.verdant_embrace_hp&cycle.range>0&cycle.range<=40
 
   living_flame_heal_filler:
-    # Last-resort spot heal — only when Verdant Embrace AND Dream Breath both on cooldown
-    - living_flame.player,if=health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0
-    - living_flame,cycle=members,if=cycle.health.pct<65&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
-    # Chrono Flame (Chronowarden) — instant ST heal filler when stronger tools are on CD
-    - living_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.member_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
-    - living_flame.player,if=var.chrono_build&health.pct<config.member_heal_hp&var.verdant_embrace_ready=0
+    # Truly desperate only — per Icy Veins, never in raid, M+ last resort when all else on CD
+    - living_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0
+    - chrono_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0
+    - living_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
+    - chrono_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&var.dream_breath_ready=0&cycle.range>0&cycle.range<=40
+    # Chrono Flame ST spot heal when stronger tools are on CD
+    - living_flame,cycle=members,if=cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
+    - chrono_flame,cycle=members,if=var.chrono_build&cycle.health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0&cycle.range>0&cycle.range<=40
+    - living_flame.player,if=health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0
+    - chrono_flame.player,if=var.chrono_build&health.pct<config.living_flame_heal_hp&var.verdant_embrace_ready=0
 
   fire_breath_leaping_flames:
     # Start lines only — release is handled by empower_releases at top of main
@@ -400,9 +417,11 @@ lists:
     - deep_breath,if=config.deep_breath_enabled&active_enemies>=3&group.lowest.health.pct>80&target.valid
     # Disintegrate — top filler for both builds; Energy Loop procs per guides
     - disintegrate,if=target.valid&var.mana_ok
-    # Living Flame — secondary filler; Leaping Flames window first for Essence Burst gen
+    # Living Flame / Chrono Flame (morph) — list both, framework uses whichever is active
     - living_flame,if=var.leaping_flames_up&target.valid
+    - chrono_flame,if=var.leaping_flames_up&target.valid&var.chrono_build
     - living_flame,if=target.valid
+    - chrono_flame,if=target.valid&var.chrono_build
 
   racial_defensive:
     - stoneform,if=player.dispelable
@@ -442,6 +461,7 @@ lists:
     # Core healing engine — Temporal Anomaly and Dream Breath never fall off cooldown
     # These also handle their own empower release lines via casting_check
     - call_action_list,name=temporal_anomaly_rotation
+    - call_action_list,name=reversion_spread
     - call_action_list,name=echo_prep
     - call_action_list,name=dream_breath_rotation
     # Essence management: Essence Burst → Emerald Blossom (Twin Echoes), then Echo spread
