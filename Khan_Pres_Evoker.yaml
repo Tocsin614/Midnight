@@ -1,4 +1,4 @@
-version: 1.8.7
+version: 1.8.8
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -72,6 +72,11 @@ config:
     min: 40
     max: 90
     default: 75
+
+  reversion_spread_enabled:
+    label: "Reversion Group Spread"
+    type: checkbox
+    default: true
 
   verdant_embrace_hp:
     label: "Verdant Embrace HP %"
@@ -333,12 +338,11 @@ lists:
     - temporal_anomaly,if=var.temporal_anomaly_ready&player.combat
 
   reversion_spread:
-    # Temporal Anomaly → Reversion combo for 100% group Grace Period uptime
-    # Grace Period = 10% healing buff + damage reduction on all buffed members
-    # No health gate — this is a maintenance buff, not a reactive heal
-    - reversion.player,if=buff.reversion.down&player.combat
-    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
-    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
+    # Blanket group with Reversion for Grace Period uptime — toggle off for easy content
+    # Health gate added so it doesn't fire on 100% HP targets
+    - reversion.player,if=config.reversion_spread_enabled&buff.reversion.down&health.pct<config.reversion_hp&player.combat
+    - reversion,cycle=tanks,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40&player.combat
+    - reversion,cycle=members,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40&player.combat
 
   dream_breath_rotation:
     # Only cast when healing is actually needed — group count check uses group_heal_count slider
@@ -368,11 +372,10 @@ lists:
     - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=40
     - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.range>0&cycle.range<=40
 
-    # 2. Reversion maintenance — spread to anyone without it, Echo or not
-    #    Golden Hour bounces extra healing on second cast; always worth maintaining
-    - reversion.player,if=buff.reversion.down&player.combat
-    - reversion,cycle=tanks,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
-    - reversion,cycle=members,if=cycle.buff.reversion.down&cycle.range>0&cycle.range<=40&player.combat
+    # 2. Reversion maintenance — spread to anyone without it when toggle enabled
+    - reversion.player,if=config.reversion_spread_enabled&buff.reversion.down&health.pct<config.reversion_hp&player.combat
+    - reversion,cycle=tanks,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40&player.combat
+    - reversion,cycle=members,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=40&player.combat
 
     # 3. Verdant Embrace — single-target burst; especially valuable on tanks
     - verdant_embrace.player,if=var.verdant_embrace_ready&health.pct<config.verdant_embrace_hp
