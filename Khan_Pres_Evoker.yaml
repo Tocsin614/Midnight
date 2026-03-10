@@ -1,4 +1,4 @@
-version: 1.8.8
+version: 1.8.9
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -202,7 +202,6 @@ variables:
   tip_the_scales_ready: cooldown.tip_the_scales.ready&talent.tip_the_scales.enabled
   stasis_ready: cooldown.stasis.ready&talent.stasis.enabled
   dream_flight_ready: cooldown.dream_flight.ready&talent.dream_flight.enabled
-  rewind_ready: cooldown.rewind.ready
   zephyr_ready: cooldown.zephyr.ready&talent.zephyr.enabled
   time_dilation_ready: cooldown.time_dilation.ready&talent.time_dilation.enabled
   # Stasis is only worth firing when Dream Breath AND Temporal Anomaly are nearly ready
@@ -277,8 +276,6 @@ lists:
     - cauterizing_flame.player,if=config.auto_dispel&(player.dispelable.disease|player.dispelable.curse|player.dispelable.poison|player.dispelable)&health.pct<config.cauterizing_flame_hp
 
   emergency_healing:
-    # Rewind — mass emergency heal based on recent damage taken; true last resort
-    - rewind,interrupt=true,range_check=none,if=var.rewind_ready&var.group_critical
     # Tip the Scales + Dream Breath — instant max-rank AoE panic button (both builds)
     # TtS makes the next empower instant — no release line needed, cast completes immediately
     # Fires when 2+ members are critically low and TtS is available
