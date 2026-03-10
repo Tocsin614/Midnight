@@ -1,4 +1,4 @@
-version: 1.8.1
+version: 1.8.7
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -21,6 +21,16 @@ movement_allowed: true
 
 config:
 
+  hero_build:
+    label: "Hero Talent Build"
+    type: dropdown
+    options:
+      - label: "Chronowarden"
+        value: 1
+      - label: "Flameshaper"
+        value: 2
+    default: 1
+
   emergency_hp:
     label: "Emergency HP %"
     type: slider
@@ -42,6 +52,13 @@ config:
     max: 95
     default: 80
 
+  group_heal_count:
+    label: "AoE Injured Count"
+    type: slider
+    min: 2
+    max: 5
+    default: 3
+
   echo_hp:
     label: "Echo Apply HP %"
     type: slider
@@ -56,55 +73,26 @@ config:
     max: 90
     default: 75
 
-  mana_conserve_threshold:
-    label: "Low Mana Conserve %"
+  verdant_embrace_hp:
+    label: "Verdant Embrace HP %"
     type: slider
-    min: 10
-    max: 40
-    default: 20
+    min: 40
+    max: 95
+    default: 80
 
-  group_heal_count:
-    label: "Group Injured Min Count"
+  emerald_blossom_hp:
+    label: "Emerald Blossom HP %"
     type: slider
-    min: 2
-    max: 5
-    default: 3
+    min: 50
+    max: 95
+    default: 80
 
-  hero_build:
-    label: "Hero Talent Build"
-    type: dropdown
-    options:
-      - label: "Auto-Detect"
-        value: 0
-      - label: "Chronowarden"
-        value: 1
-      - label: "Flameshaper"
-        value: 2
-    default: 0
-
-  auto_dispel:
-    label: "Auto Dispel"
-    type: checkbox
-    default: true
-
-  mouseover:
-    label: "Enable Mouseover Healing"
-    type: checkbox
-    default: true
-
-  trinket_usage:
-    label: "Trinket Usage"
-    type: dropdown
-    options:
-      - label: "On Cooldown"
-        value: 1
-      - label: "With Major Cooldowns"
-        value: 2
-      - label: "When Group Damaged"
-        value: 3
-      - label: "Manual Only"
-        value: 0
-    default: 1
+  living_flame_heal_hp:
+    label: "Living Flame Heal HP %"
+    type: slider
+    min: 20
+    max: 70
+    default: 50
 
   dream_breath_empower:
     label: "D. Breath Emp. Level"
@@ -127,39 +115,54 @@ config:
     max: 4
     default: 4
 
+  cauterizing_flame_hp:
+    label: "Cauterizing Flame HP %"
+    type: slider
+    min: 20
+    max: 100
+    default: 45
+
+  trinket_usage:
+    label: "Trinket Usage"
+    type: dropdown
+    options:
+      - label: "On Cooldown"
+        value: 1
+      - label: "With Major Cooldowns"
+        value: 2
+      - label: "When Group Damaged"
+        value: 3
+      - label: "Manual Only"
+        value: 0
+    default: 1
+
+  mana_conserve_threshold:
+    label: "Low Mana Conserve %"
+    type: slider
+    min: 10
+    max: 40
+    default: 20
+
+  mouseover:
+    label: "Enable Mouseover Healing"
+    type: checkbox
+    default: true
+
+  auto_dispel:
+    label: "Auto Dispel"
+    type: checkbox
+    default: true
+
   deep_breath_enabled:
     label: "Enable Deep Breath"
     type: checkbox
     default: false
 
-  emerald_blossom_hp:
-    label: "Emerald Blossom HP %"
-    type: slider
-    min: 50
-    max: 95
-    default: 80
-
-  living_flame_heal_hp:
-    label: "Living Flame Heal HP %"
-    type: slider
-    min: 20
-    max: 70
-    default: 50
-
-  verdant_embrace_hp:
-    label: "Verdant Embrace HP %"
-    type: slider
-    min: 40
-    max: 95
-    default: 80
-
 variables:
 
   # === HERO BUILD DETECTION ===
-  # Chronowarden gate talent: Chrono Flame (first pick in Chronowarden tree)
-  # Flameshaper gate talent: Legacy of the Lifebinder (first pick in Flameshaper tree)
-  chrono_build: config.hero_build=1|(talent.chrono_flames.enabled&config.hero_build=0)
-  flame_build: config.hero_build=2|(talent.legacy_of_the_lifebinder.enabled&config.hero_build=0)
+  chrono_build: config.hero_build=1
+  flame_build: config.hero_build=2
 
   # === GROUP HEALTH STATE ===
   needs_emergency: group.lowest.health.pct<config.emergency_hp
@@ -258,8 +261,15 @@ lists:
     - target_enemy,if=player.combat&!target.valid&active_enemies>0
 
   dispel:
-    - cauterizing_flame.player,if=config.auto_dispel&player.dispelable
-    - cauterizing_flame,cycle=members,if=config.auto_dispel&cycle.dispelable.list&cycle.range>0&cycle.range<=40
+    # Naturalize — removes Magic and Poison, 8s CD, use freely when type matches
+    - naturalize,cycle=members,if=config.auto_dispel&(cycle.dispelable.magic|cycle.dispelable.poison)&cycle.range>0&cycle.range<=40
+    - naturalize.player,if=config.auto_dispel&(player.dispelable.magic|player.dispelable.poison)
+    # Cauterizing Flame — removes Bleed, Poison, Curse, Disease, 1min CD
+    # Gate behind HP threshold — save for tanks/low members, not healthy targets
+    # cycle.dispelable catch-all covers bleeds (no specific bleed type in framework)
+    - cauterizing_flame,cycle=tanks,if=config.auto_dispel&(cycle.dispelable.disease|cycle.dispelable.curse|cycle.dispelable.poison|cycle.dispelable)&cycle.health.pct<config.cauterizing_flame_hp&cycle.range>0&cycle.range<=40
+    - cauterizing_flame,cycle=members,if=config.auto_dispel&(cycle.dispelable.disease|cycle.dispelable.curse|cycle.dispelable.poison|cycle.dispelable)&cycle.health.pct<config.cauterizing_flame_hp&cycle.range>0&cycle.range<=40
+    - cauterizing_flame.player,if=config.auto_dispel&(player.dispelable.disease|player.dispelable.curse|player.dispelable.poison|player.dispelable)&health.pct<config.cauterizing_flame_hp
 
   emergency_healing:
     # Rewind — mass emergency heal based on recent damage taken; true last resort
