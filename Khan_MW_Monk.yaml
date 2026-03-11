@@ -1,4 +1,4 @@
-version: 1.10.1
+version: 1.10.2
 author: Khan
 spec: 270
 name: Khan's Mistweaver Monk
@@ -392,6 +392,19 @@ lists:
     - spinning_crane_kick,if=active_enemies>=3&target.valid
     - tiger_palm,if=target.valid
 
+  interrupts:
+    # MW has no kick (Spear Hand Strike removed in Midnight) — use CC interrupts
+    # CC Interrupt
+    - leg_sweep,if=interrupt.cc.check
+    # AoE stun
+    - paralysis,if=interrupt.cc.check
+    # Racial Interrupts
+    - quaking_palm,if=interrupt.cc.check
+    - haymaker,if=interrupt.cc.check
+    - war_stomp,if=interrupt.stun.aoe.check
+    - bull_rush,if=interrupt.stun.aoe.check
+    - tail_swipe,if=interrupt.stun.aoe.check
+
   racial_defensive:
     - stoneform,if=player.dispelable
     - fireblood,if=player.dispelable
@@ -410,10 +423,16 @@ lists:
   main:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
+    - call_action_list,name=auto_target
+    # Interrupts
+    - call_action_list,name=interrupts
+    # Combat check — lead dev pattern
+    - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
+    - return,if=!player.combat&config.auto_combat.has(0)
+    # Pre-pull ReM spread
     - call_action_list,name=pre_pull_setup,if=!player.combat&target.exists&target.boss
+    # Out of combat healing
     - call_action_list,name=out_of_combat,if=!player.combat
-    - return,if=!player.combat
-    - call_action_list,name=auto_target,if=player.combat
     # Emergency healing fires first — interrupts everything including channels
     - call_action_list,name=emergency_healing,if=var.needs_emergency
     - call_action_list,name=defensive_cooldowns
