@@ -1,4 +1,4 @@
-version: 1.10.1
+version: 1.10.2
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -289,8 +289,8 @@ lists:
     - time_dilation,cycle=tanks,interrupt=true,if=var.time_dilation_ready&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=30
     - time_dilation,cycle=members,interrupt=true,if=var.time_dilation_ready&cycle.health.pct<15&cycle.range>0&cycle.range<=30
     # Merithra's Blessing proc → Reversion on emergency target (instant burst + HoT)
-    - reversion,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=30
-    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=30
+    - merithras_blessing,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=30
+    - merithras_blessing,cycle=members,interrupt=true,if=var.merithra_proc&cycle.health.pct<config.emergency_hp&cycle.range>0&cycle.range<=30
     # Emergency Reversion on anyone critical
     - reversion,cycle=members,interrupt=true,if=cycle.health.pct<config.emergency_hp&cycle.buff.reversion.down&cycle.range>0&cycle.range<=30
     - reversion.player,interrupt=true,if=var.player_low
@@ -364,10 +364,10 @@ lists:
     # Grace Period + Golden Hour make this the highest value Echo spend
 
     # 1. Merithra's Blessing proc — interrupt to fire immediately on burst-hit targets
-    - reversion.player,interrupt=true,if=var.merithra_proc&health.pct<config.member_heal_hp
-    - reversion,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=30
-    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=30
-    - reversion,cycle=members,interrupt=true,if=var.merithra_proc&cycle.range>0&cycle.range<=30
+    - merithras_blessing.player,interrupt=true,if=var.merithra_proc&health.pct<config.member_heal_hp
+    - merithras_blessing,cycle=tanks,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=30
+    - merithras_blessing,cycle=members,interrupt=true,if=var.merithra_proc&cycle.buff.echo.up&cycle.range>0&cycle.range<=30
+    - merithras_blessing,cycle=members,interrupt=true,if=var.merithra_proc&cycle.range>0&cycle.range<=30
 
     # 2. Reversion maintenance — spread to anyone without it when toggle enabled
     - reversion.player,if=config.reversion_spread_enabled&buff.reversion.down&health.pct<config.reversion_hp&player.combat
