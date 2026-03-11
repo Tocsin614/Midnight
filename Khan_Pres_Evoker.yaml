@@ -1,4 +1,4 @@
-version: 1.10.0
+version: 1.10.1
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -463,7 +463,6 @@ lists:
     - return,if=!player.combat&config.auto_combat.has(0)
     - call_action_list,name=pre_pull_setup,if=!player.combat&target.exists&target.boss
     - call_action_list,name=out_of_combat,if=!player.combat
-    - return,if=!player.combat
     # Emergency healing — interrupts everything
     - call_action_list,name=emergency_healing,if=var.needs_emergency
     - call_action_list,name=defensive_cooldowns
