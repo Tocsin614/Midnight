@@ -10,12 +10,12 @@
 
 | File | Spec | Version | Hero Talent |
 |------|------|---------|-------------|
-| `Khan_Mistweaver_Monk.yaml` | Mistweaver Monk | v1.10.1 | Conduit of the Celestials |
-| `Khan_Pres_Evoker.yaml` | Preservation Evoker | v1.8.9 | Chronowarden / Flameshaper |
+| `Khan_Mistweaver_Monk.yaml` | Mistweaver Monk | v1.10.2 | Conduit of the Celestials |
+| `Khan_Pres_Evoker.yaml` | Preservation Evoker | v1.10.1 | Chronowarden / Flameshaper |
 
 ---
 
-## 🧘 Mistweaver Monk — v1.10.1
+## 🧘 Mistweaver Monk — v1.10.2
 
 An active, mobile healer built around the **Conduit of the Celestials** hero talent tree. Prioritizes Yu'lon's blessings, efficient mana usage, and seamless AoE ramp-up without sacrificing single-target throughput.
 
@@ -41,7 +41,7 @@ An active, mobile healer built around the **Conduit of the Celestials** hero tal
 
 ---
 
-## 🐉 Preservation Evoker — v1.8.9
+## 🐉 Preservation Evoker — v1.10.1
 
 A deep, technically refined healing rotation built for the **Chronowarden** and **Flameshaper** hero talent paths. Features full empower spell management, Echo duplication sequencing, and extensive self-healing safeguards — refined.
 
