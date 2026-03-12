@@ -1,4 +1,4 @@
-version: 1.10.2
+version: 1.10.3
 author: Khan
 spec: 270
 name: Khan's Mistweaver Monk
@@ -101,11 +101,6 @@ config:
     type: checkbox
     default: true
 
-  mouseover:
-    label: "Enable Mouseover Healing"
-    type: checkbox
-    default: true
-
   trinket_usage:
     label: "Trinket Usage"
     type: dropdown
@@ -171,9 +166,6 @@ variables:
   tft_target_envm: var.tft_up&var.tank_emergency
   tft_target_rsk: var.tft_up&var.in_celestial_window&!var.tft_target_envm
   tft_target_rem: var.tft_up&!var.tft_target_envm&!var.tft_target_rsk
-
-  # === MOUSEOVER ===
-  mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly&mouseover.range>0&mouseover.range<=40
 
 lists:
 
@@ -366,13 +358,6 @@ lists:
     # Soothing Mist — channel for consistent sustained healing on injured target
     - soothing_mist,cycle=members,if=cycle.health.pct<config.soothing_mist_hp&cycle.range>0&cycle.range<=40
 
-  mouseover_healing:
-    # Life Cocoon on mouseover — off GCD emergency
-    - life_cocoon.mouseover,interrupt=true,range_check=none,if=mouseover.health.pct<15&var.life_cocoon_ready
-    - enveloping_mist.mouseover,if=mouseover.health.pct<config.enveloping_hp&mouseover.buff.enveloping_mist.down
-    - sheiluns_gift.mouseover,if=talent.sheiluns_gift.enabled&mouseover.health.pct<config.member_heal_hp
-    - vivify.mouseover,if=mouseover.health.pct<config.member_heal_hp
-
   movement:
     # Instant casts only while moving
     - renewing_mist,cycle=members,if=player.moving&var.rem_charges_have&cycle.buff.renewing_mist.down&cycle.range>0&cycle.range<=40
@@ -455,7 +440,6 @@ lists:
     - call_action_list,name=group_healing,if=var.group_heavy_damage
     - call_action_list,name=single_target_healing,if=var.needs_member_healing
     # Mouseover and movement support
-    - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
     - call_action_list,name=movement,if=player.moving
     # DPS fillers — instant casts only; no channels
     - call_action_list,name=racial_offensive,if=var.in_celestial_window
