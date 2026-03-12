@@ -1,4 +1,4 @@
-version: 1.10.2
+version: 1.10.4
 author: Khan
 spec: 1468
 name: Khan's Preservation Evoker
@@ -148,11 +148,6 @@ config:
     max: 40
     default: 20
 
-  mouseover:
-    label: "Enable Mouseover Healing"
-    type: checkbox
-    default: true
-
   auto_dispel:
     label: "Auto Dispel"
     type: checkbox
@@ -214,9 +209,6 @@ variables:
   tank_has_echo: group.tanks.lowest.health.pct<100&buff.echo.up.any
   # Reversion HoT coverage
   reversion_spread: group.count(cycle.buff.reversion.up)>=3
-
-  # === MOUSEOVER ===
-  mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly&mouseover.range>0&mouseover.range<=30
 
 lists:
 
@@ -337,6 +329,11 @@ lists:
   reversion_spread:
     # Blanket group with Reversion for Grace Period uptime — toggle off for easy content
     # Health gate added so it doesn't fire on 100% HP targets
+    # Merithra's Blessing proc lines first — when proc is up use it instead of base Reversion
+    - merithras_blessing.player,if=config.reversion_spread_enabled&var.merithra_proc&buff.reversion.down&health.pct<config.reversion_hp&player.combat
+    - merithras_blessing,cycle=tanks,if=config.reversion_spread_enabled&var.merithra_proc&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
+    - merithras_blessing,cycle=members,if=config.reversion_spread_enabled&var.merithra_proc&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
+    # Base Reversion fallback when proc is not active
     - reversion.player,if=config.reversion_spread_enabled&buff.reversion.down&health.pct<config.reversion_hp&player.combat
     - reversion,cycle=tanks,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
     - reversion,cycle=members,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
@@ -370,6 +367,10 @@ lists:
     - merithras_blessing,cycle=members,interrupt=true,if=var.merithra_proc&cycle.range>0&cycle.range<=30
 
     # 2. Reversion maintenance — spread to anyone without it when toggle enabled
+    # Merithra proc lines first — consume the proc during spread for maximum value
+    - merithras_blessing.player,if=config.reversion_spread_enabled&var.merithra_proc&buff.reversion.down&health.pct<config.reversion_hp&player.combat
+    - merithras_blessing,cycle=tanks,if=config.reversion_spread_enabled&var.merithra_proc&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
+    - merithras_blessing,cycle=members,if=config.reversion_spread_enabled&var.merithra_proc&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
     - reversion.player,if=config.reversion_spread_enabled&buff.reversion.down&health.pct<config.reversion_hp&player.combat
     - reversion,cycle=tanks,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
     - reversion,cycle=members,if=config.reversion_spread_enabled&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range>0&cycle.range<=30&player.combat
@@ -403,10 +404,6 @@ lists:
     - fire_breath,empower_to=2,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=2&!player.casting.fire_breath
     - fire_breath,empower_to=3,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=3&!player.casting.fire_breath
     - fire_breath,empower_to=4,if=var.fire_breath_ready&target.valid&player.combat&var.flame_build&config.fire_breath_empower_flame=4&!player.casting.fire_breath
-
-  mouseover_healing:
-    # Verdant Embrace on mouseover — instant single-target burst
-    - verdant_embrace.mouseover,interrupt=true,if=var.verdant_embrace_ready&mouseover.health.pct<config.emergency_hp
 
   movement:
     # Only instant casts while moving — .player lines cover self when solo
@@ -451,7 +448,6 @@ lists:
     - call_action_list,name=auto_target
     # Interrupts
     - wing_buffet,if=interrupt.target.check
-    - wing_buffet.mouseover,if=interrupt.mouseover.check
     - wing_buffet.focus,if=interrupt.focus.check
     # AoE Interrupt
     - tail_swipe,if=interrupt.stun.aoe.check
@@ -490,7 +486,6 @@ lists:
     # Fire Breath on cooldown — empower release fires via casting_check at Rank 4
     - call_action_list,name=fire_breath_leaping_flames
     # Mouseover and movement
-    - call_action_list,name=mouseover_healing,if=config.mouseover&var.mo_friendly_valid&!player.casting
     - call_action_list,name=movement,if=player.moving
     # DPS fillers — only when group is healthy; healing always takes priority
     - call_action_list,name=racial_offensive
