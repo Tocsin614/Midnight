@@ -2,12 +2,12 @@
 # Mistweaver Monk - Midnight Season 1 (Patch 12.0.1)
 # ============================================================================
 # Author  : Khan
-# Version : 4.4.9
+# Version : 4.5.1
 # Date    : 2026-03-20
 # Spec ID : 270 (Mistweaver Monk)
 # ============================================================================
 
-version: "4.4.9"
+version: "4.5.1"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
@@ -16,7 +16,7 @@ date: "2026-03-20"
 patch: "12.0.1"
 
 # ----------------------------------------------------------------------------
-# ROOT MW MELE
+# Movement handling (MW is melee/instant-heavy healer)
 # ----------------------------------------------------------------------------
 movement_allowed: true
 
@@ -184,7 +184,7 @@ variables:
 lists:
 
   # --------------------------------------------------------------------------
-  # MAIN — entry point (auto-executed)
+  # MAIN
   # --------------------------------------------------------------------------
   main:
     - return,if=player.dead
@@ -195,7 +195,7 @@ lists:
     - call_action_list,name=auto_target
     - call_action_list,name=sanity_checks
     # TANK LIFE COCOON — absolute highest priority. Fires before everything including channels.
-    - life_cocoon,interrupt=true,cycle=tanks,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
     # Soothing Mist channel — Vivify, SG, EnvMist become instant during channel
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
     # Framework layers
@@ -206,8 +206,8 @@ lists:
     - call_action_list,name=cooldowns,if=state.cds
     # VV (Vivacious Vivification) — instant SG on lowest target. High priority, just under CDs.
     # RSK procs this. Fires always regardless of profile, targets most injured.
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     # Profile routing
     - call_action_list,name=cotc_raid,if=(config.rotation_profile=1)&var.is_cotc
     - call_action_list,name=cotc_mplus,if=(config.rotation_profile=2)&var.is_cotc
@@ -235,13 +235,13 @@ lists:
     # Exit channel if nobody needs healing anymore — don't just sit channeling on a full-health tank
     - stop_casting,interrupt=true,if=player.channeling&group.lowest.health.pct>config.heal_threshold
     # Emergency — imminent death, instant cast right now
-    - vivify,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!var.has_sheiluns_gift&cycle.health.pct<25&!cycle.dead&cycle.range<=40
-    - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=var.has_sheiluns_gift&cycle.health.pct<25&!cycle.dead&cycle.range<=40
+    - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<25&group.lowest.range<=40
+    - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<25&group.lowest.range<=40
     # EnvMist on injured targets — 2s cast reduced to instant, huge value
     - enveloping_mist,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     # Vivify/SG on injured members
-    - vivify,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
   interrupt:
     # Kick — Paralysis is the MW hard interrupt (target, mouseover, focus)
     - paralysis,if=interrupt.target.check
@@ -275,8 +275,8 @@ lists:
   # --------------------------------------------------------------------------
   emergency_heal:
     # Life Cocoon — TANK FIRST, then members. Prevents casting on player over dying tank.
-    - life_cocoon,interrupt=true,cycle=tanks,if=config.use_defensives&cycle.health.pct<=config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
-    - life_cocoon,interrupt=true,cycle=dps,if=config.use_defensives&cycle.health.pct<=config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
+    - life_cocoon,interrupt=true,target=tanks.lowest,if=config.use_defensives&group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    - life_cocoon,interrupt=true,target=lowest,if=config.use_defensives&group.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
     # Revival — mass instant heal; range check via group.lowest.range
     - revival,interrupt=true,if=!talent.restoral&cooldown.revival.ready&group.lowest.range<=40&(group.count(cycle.health.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - restoral,if=talent.restoral&cooldown.restoral.ready&group.lowest.range<=40&(group.count(cycle.health.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
@@ -288,8 +288,8 @@ lists:
   # Fires AFTER profile lists. Only on Vivacious proc (instant cast).
   # --------------------------------------------------------------------------
   tank_heal:
-    - vivify,cycle=tanks,if=!var.has_sheiluns_gift&cycle.health.pct<config.tank_heal_threshold&!cycle.dead&cycle.range<=40&var.vivacious_up
-    - sheiluns_gift,cycle=tanks,if=var.has_sheiluns_gift&cycle.health.pct<config.tank_heal_threshold&!cycle.dead&cycle.range<=40&var.vivacious_up
+    - vivify,target=tanks.lowest,if=!var.has_sheiluns_gift&group.tanks.lowest.health.pct<config.tank_heal_threshold&group.tanks.lowest.range<=40&var.vivacious_up
+    - sheiluns_gift,target=tanks.lowest,if=var.has_sheiluns_gift&group.tanks.lowest.health.pct<config.tank_heal_threshold&group.tanks.lowest.range<=40&var.vivacious_up
 
   # --------------------------------------------------------------------------
   # COOLDOWNS — trinkets only
@@ -325,10 +325,10 @@ lists:
     - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
     - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
     # 5. Vivify — Vivacious proc after RWK; Zen Pulse proc
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.zen_pulse_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.zen_pulse_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 6. EnvMist — Spiritfont/SoX proc outside Yu'lon window
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
@@ -337,11 +337,11 @@ lists:
     # 8. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     # 9. Vivify — general heal on injured
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 9. Life Cocoon when Refreshment talented
-    - life_cocoon,cycle=tanks,if=var.has_refreshment&cooldown.life_cocoon.ready&cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40
-    - life_cocoon,cycle=dps,if=var.has_refreshment&cooldown.life_cocoon.ready&cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40
+    - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
+    - life_cocoon,target=lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.lowest.health.pct<config.life_cocoon_threshold&group.lowest.range<=40
     # 10. Mana Tea — downtime
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
     # 11. Fillers
@@ -367,10 +367,10 @@ lists:
     - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
     - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
     # Step 6: Vivify — instant via Vivacious Vivification proc after RWK
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.zen_pulse_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.zen_pulse_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # TFT between loops — keep haste buff rolling
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
 
@@ -386,16 +386,16 @@ lists:
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
     - renewing_mist,if=var.renm_capped
     # Vivify — Vivacious proc fires right after RWK
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     # EnvMist on procs — keep rolling even during HotJS window
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     # TFT — accelerated CDR in HotJS; keep pressing
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
     # Life Cocoon reactive
-    - life_cocoon,interrupt=true,cycle=tanks,if=cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
-    - life_cocoon,interrupt=true,cycle=dps,if=cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
+    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    - life_cocoon,interrupt=true,target=lowest,if=group.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
 
   # ==========================================================================
   # COTC M+
@@ -426,16 +426,16 @@ lists:
     - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
     # 5. Vivify — instant after RSK via Vivacious Vivification proc (spammable filler)
     #    Bounces to 2 targets via Rapid Diffusion. Fire on proc always.
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.health.pct<=group.lowest.health.pct+5&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     # 6. Invoke Chi-Ji (Method step 2) — AFTER TFT+EnvMist to get Secret Infusion buff
     - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
     - celestial_conduit,interrupt=true,if=config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
     # 7. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     # 8. SG / Vivify — spot heal on most injured
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - vivify,cycle=members,if=!var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 9. Spread RenM
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
     # 9. BOK + TP — build Teachings stacks for RSK resets (Method step 8)
@@ -460,7 +460,7 @@ lists:
     # Step 6: RSK again if reset by Blackout Kick (Pool of Mists)
     - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
     # Step 7: SG or EnvMist for spot healing on most injured
-    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     # Step 8: TP/BOK to build more Teachings stacks for RSK resets
     - tiger_palm,if=target.exists&target.enemy
@@ -483,8 +483,8 @@ lists:
     # Spread RenM during HotJS
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
     # Life Cocoon reactive
-    - life_cocoon,interrupt=true,cycle=tanks,if=cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
-    - life_cocoon,interrupt=true,cycle=dps,if=cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40&cooldown.life_cocoon.ready
+    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    - life_cocoon,interrupt=true,target=lowest,if=group.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
 
   # ==========================================================================
   # MOH RAID
@@ -509,7 +509,7 @@ lists:
     # 5. EnvMist on Spiritfont proc (2 stacks) — injured target
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     # 6. Sheilun's Gift on Harmonic Surge 6-stack proc — injured target
-    - sheiluns_gift,cycle=members,if=var.harmonic_surge_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 7. TFT — MoH: Endless Draught (2 charges)
     #    Overcap prevention: fire immediately if at max charges
     - thunder_focus_tea,range_check=none,if=var.tft_capped
@@ -522,11 +522,11 @@ lists:
     # 9. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     # 10. Sheilun's Gift — primary heal on injured
-    - sheiluns_gift,cycle=members,if=cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 10. Life Cocoon on CD when Refreshment talented — generates Mana Tea stacks
     # Still requires target to actually need healing (below threshold)
-    - life_cocoon,cycle=tanks,if=var.has_refreshment&cooldown.life_cocoon.ready&cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40
-    - life_cocoon,cycle=dps,if=var.has_refreshment&cooldown.life_cocoon.ready&cycle.health.pct<config.life_cocoon_threshold&!cycle.dead&cycle.range<=40
+    - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
+    - life_cocoon,target=lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.lowest.health.pct<config.life_cocoon_threshold&group.lowest.range<=40
     # 11. Mana Tea — downtime (gain Tranquil Tea clouds for SG)
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
     # 11. Fillers
@@ -555,11 +555,11 @@ lists:
     # 5. EnvMist on Spiritfont proc (2 stacks)
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
     # 6. Sheilun's Gift on Harmonic Surge 6-stack proc
-    - sheiluns_gift,cycle=members,if=var.harmonic_surge_ready&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     # 7. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     # 8. Sheilun's Gift — general heal on injured, fires as instant inside Soothing Mist
-    - sheiluns_gift,cycle=members,if=cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
+    - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_chi_ji_the_red_crane.remains<3)
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
