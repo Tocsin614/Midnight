@@ -2,12 +2,12 @@
 # Mistweaver Monk - Midnight Season 1 (Patch 12.0.1)
 # ============================================================================
 # Author  : Khan
-# Version : 4.5.1
+# Version : 4.5.2
 # Date    : 2026-03-20
 # Spec ID : 270 (Mistweaver Monk)
 # ============================================================================
 
-version: "4.5.1"
+version: "4.5.2"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
@@ -16,7 +16,7 @@ date: "2026-03-20"
 patch: "12.0.1"
 
 # ----------------------------------------------------------------------------
-# Movement handling (MW is melee/instant-heavy healer)
+# Movement MW is melee/instant-heavy healer
 # ----------------------------------------------------------------------------
 movement_allowed: true
 
@@ -184,7 +184,7 @@ variables:
 lists:
 
   # --------------------------------------------------------------------------
-  # MAIN
+  # MAIN — entry point (auto-executed)
   # --------------------------------------------------------------------------
   main:
     - return,if=player.dead
@@ -243,13 +243,14 @@ lists:
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
   interrupt:
-    # Kick — Paralysis is the MW hard interrupt (target, mouseover, focus)
-    - paralysis,if=interrupt.target.check
-    - paralysis,if=interrupt.mouseover.check
-    - paralysis,if=interrupt.focus.check
-    # AoE CC / stun
-    - leg_sweep,if=interrupt.stun.aoe.check
-    - quaking_palm,if=interrupt.cc.check
+    # Paralysis — hard interrupt on target / mouseover / focus
+    - paralysis,interrupt=true,if=target.incoming_cast.kickable.ready
+    - paralysis,interrupt=true,if=mouseover.incoming_cast.kickable.ready
+    - paralysis,interrupt=true,if=focus.incoming_cast.kickable.ready
+    # Leg Sweep — AoE stun on nearby casting enemies
+    - leg_sweep,interrupt=true,if=incoming_cast.8y.stunnable.up
+    # Quaking Palm — single-target CC on target
+    - quaking_palm,interrupt=true,if=target.incoming_cast.kickable.ready
 
   # --------------------------------------------------------------------------
   # DISPEL — Detox removes Magic, Poison, Disease from allies
