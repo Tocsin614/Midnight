@@ -1,8 +1,8 @@
 # ============================================================================
-# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.4.2
+# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.4.0
 # ============================================================================
 
-version: "1.4.2"
+version: "1.4.0"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -24,12 +24,10 @@ config:
     label: "Content Mode"
     type: dropdown
     options:
-      - label: "Auto (detect raid vs M+)"
+      - label: "Mythic+ (Eternal Flame / Word of Glory)"
         value: 1
-      - label: "Force Mythic+"
+      - label: "Raid (Light of Dawn priority)"
         value: 2
-      - label: "Force Raid"
-        value: 3
     default: 1
 
   # ── Emergency ─────────────────────────────────────────────────────────────
@@ -97,7 +95,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 85
+    default: 95
 
   tank_critical_hp:
     section: "Healing"
@@ -105,23 +103,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 40
-
-  healer_hp:
-    section: "Healing"
-    label: "Healer Heal HP %"
-    type: slider
-    min: 1
-    max: 100
-    default: 80
-
-  healer_critical_hp:
-    section: "Healing"
-    label: "Healer Critical HP %"
-    type: slider
-    min: 1
-    max: 100
-    default: 40
+    default: 55
 
   group_needs_hp:
     section: "Healing"
@@ -129,7 +111,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 80
+    default: 90
 
   word_of_glory_hp:
     section: "Healing"
@@ -137,7 +119,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 90
+    default: 95
 
   holy_shock_hp:
     section: "Healing"
@@ -145,7 +127,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 90
+    default: 95
 
   flash_of_light_hp:
     section: "Healing"
@@ -202,7 +184,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 45
+    default: 55
 
   avenging_wrath_injured:
     section: "Cooldowns"
@@ -311,9 +293,8 @@ variables:
   has_tyrs_deliverance:   talent.tyrs_deliverance
 
   # ── Content Mode ──────────────────────────────────────────────────────────
-  # Auto-detects raid via player.inraid; manual override available in config
-  is_raid:  (config.content_mode=1&player.inraid)|config.content_mode=3
-  is_mplus: !var.is_raid
+  is_mplus: config.content_mode=1
+  is_raid:  config.content_mode=2
 
   # ── Holy Power ────────────────────────────────────────────────────────────
   hp_capped:     holy_power>=5
@@ -342,8 +323,6 @@ variables:
   # ── Group Health ──────────────────────────────────────────────────────────
   tank_needs_healing:   group.tanks.lowest.health.pct<config.tank_hp
   tank_critical:        group.tanks.lowest.health.pct<config.tank_critical_hp
-  healer_needs_healing: group.healers.lowest.health.pct<config.healer_hp
-  healer_critical:      group.healers.lowest.health.pct<config.healer_critical_hp
   group_emergency: group.count(cycle.health.pct<config.emergency_hp)>=1
   group_critical:  group.count(cycle.health.pct<config.emergency_hp)>=2
   group_needs_healing:  group.count(cycle.health.pct<config.group_needs_hp)>=2
@@ -367,7 +346,7 @@ lists:
   out_of_combat:
     - devotion_aura,if=buff.devotion_aura.down
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
-    - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&!cycle.buff.beacon_of_light.up&cycle.range<=40
+    - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
     - redemption,cycle=members,if=cycle.dead
     - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
@@ -407,7 +386,7 @@ lists:
   # Beacon maintenance
   beacon_maintenance:
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
-    - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&!cycle.buff.beacon_of_light.up&cycle.range<=40
+    - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
 
   # Major cooldowns — all need-based, never fire on a full-health group
@@ -434,18 +413,6 @@ lists:
     - eternal_flame,target=tanks.lowest,if=var.hp_spendable&var.has_eternal_flame&var.tank_needs_healing
     - word_of_glory,target=tanks.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.tank_needs_healing
     - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.flash_of_light_hp
-
-  # Healer healing — priority path for injured healers
-  healer_healing:
-    - light_of_dawn,if=var.hp_capped&var.healer_critical&var.is_raid
-    - eternal_flame,target=healers.lowest,if=var.hp_capped&var.has_eternal_flame&var.healer_critical
-    - word_of_glory,target=healers.lowest,if=var.hp_capped&!var.has_eternal_flame&var.healer_critical
-    - holy_light,target=healers.lowest,if=var.hod_proc
-    - flash_of_light,target=healers.lowest,if=var.iof_proc&var.healer_needs_healing
-    - holy_shock,target=healers.lowest,if=var.holy_shock_ready&var.healer_needs_healing
-    - eternal_flame,target=healers.lowest,if=var.hp_spendable&var.has_eternal_flame&var.healer_needs_healing
-    - word_of_glory,target=healers.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.healer_needs_healing
-    - flash_of_light,target=healers.lowest,if=group.healers.lowest.health.pct<config.flash_of_light_hp
 
   # Mouseover — mo_valid gate prevents misfires on enemies/dead
   mouseover_members:
@@ -578,7 +545,6 @@ lists:
     - call_action_list,name=racial
     - call_action_list,name=trinkets
     - call_action_list,name=tank_healing,if=var.tank_needs_healing
-    - call_action_list,name=healer_healing,if=var.healer_needs_healing
     - call_action_list,name=spenders
     - call_action_list,name=member_healing,if=var.needs_member_healing
     - call_action_list,name=generators
