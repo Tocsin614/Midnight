@@ -1,13 +1,6 @@
-# ============================================================================
-# Mistweaver Monk - Midnight Season 1 (Patch 12.0.1)
-# ============================================================================
-# Author  : Khan
-# Version : 4.5.2
-# Date    : 2026-03-20
-# Spec ID : 270 (Mistweaver Monk)
-# ============================================================================
-
-version: "4.5.2"
+# Mistweaver Monk — Midnight 12.0.1 | Spec 270 | Author: Khan
+# Version : 4.7.8  |  Source: Method.gg (Tincell)
+version: "4.7.8"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
@@ -15,14 +8,9 @@ author: "Khan"
 date: "2026-03-20"
 patch: "12.0.1"
 
-# ----------------------------------------------------------------------------
-# Movement MW is melee/instant-heavy healer
-# ----------------------------------------------------------------------------
 movement_allowed: true
 
-# ============================================================================
 # CONFIG
-# ============================================================================
 config:
   rotation_profile:
     section: "Profile"
@@ -69,7 +57,7 @@ config:
     label: "Life Cocoon HP% Threshold"
     min: 1
     max: 100
-    default: 40
+    default: 35
 
   cooldown_threshold:
     section: "Cooldowns"
@@ -129,17 +117,29 @@ config:
     max: 100
     default: 80
 
-# ============================================================================
+  ramp_trigger:
+    section: "Ramp"
+    type: toggle
+    label: "Force Pre-Ramp Spread"
+    description: "Manually trigger RenM+TFT spread sequence. Hotkey this for pull or known damage events."
+    show_override: true
+    spell: 116680
+
+  ramp_window:
+    section: "Ramp"
+    type: slider
+    label: "Ramp Window (seconds before event)"
+    min: 3
+    max: 15
+    default: 8
+
 # VARIABLES
-# ============================================================================
 variables:
-  # --- Hero talent detection ---
-  # CotC: detected via Celestial Conduit (443028) — exclusive to this tree
-  # MoH: detected via Aspect of Harmony (450508) — exclusive to this tree
+  # Hero talent detection
   is_cotc: talent.celestial_conduit
   is_moh: talent.aspect_of_harmony
 
-  # --- Buff / proc states ---
+  # Buff/proc states
   hotjs_active: buff.heart_of_the_jade_serpent.up
   yulon_active: buff.invoke_yulon_the_jade_serpent.up
   chiji_active: buff.invoke_chi_ji_the_red_crane.up
@@ -151,7 +151,7 @@ variables:
   harmonic_surge_ready: buff.harmonic_surge.stack>=6
   dance_of_chiji: buff.dance_of_chi_ji.up
 
-  # --- Talent flags ---
+  # Talent flags
   has_rwk: talent.rushing_wind_kick
   has_focused_thunder: talent.focused_thunder
   has_pool_of_mists: talent.pool_of_mists
@@ -161,7 +161,7 @@ variables:
   has_endless_draught: talent.endless_draught
   has_refreshment: talent.refreshment
 
-  # --- Resource / cooldown shorthands ---
+  # Cooldown shorthands
   renm_capped: cooldown.renewing_mist.charges>=3
   renm_has_charge: cooldown.renewing_mist.charges>=1
   rsk_ready: cooldown.rising_sun_kick.ready
@@ -169,455 +169,272 @@ variables:
   tft_ready: cooldown.thunder_focus_tea.ready
   tft_capped: cooldown.thunder_focus_tea.charges=cooldown.thunder_focus_tea.max_charges
 
-  # --- Group health shortcuts ---
-  # group_injured drives DPS filler gating — DPS only fires when lowest is ABOVE dps_threshold
+  # Group health
   group_injured: group.lowest.health.pct<config.dps_threshold
   group_critical: group.lowest.health.pct<50
-  # group_needs_cd — gates celestial summons (Yu'lon / Chi-Ji)
-  group_needs_cd: group.lowest.health.pct<config.cooldown_threshold
-  # group_needs_conduit — gates Celestial Conduit separately
-  group_needs_conduit: group.lowest.health.pct<config.celestial_conduit_threshold
+  group_needs_cd: (group.lowest.health.pct<config.cooldown_threshold)|(encounter.active&encounter.next.remains<3)
+  group_needs_conduit: (group.lowest.health.pct<config.celestial_conduit_threshold)|(encounter.active&encounter.next.remains<3)
 
-# ============================================================================
+  # Ramp
+  # ramp_active fires on encounter timeline OR manual toggle — triggers Phase 1 spread only
+  # ramp_imminent fires ONLY on encounter timeline — Phase 2 CDs never blow on toggle alone
+  ramp_active: (encounter.active&encounter.next.remains<config.ramp_window)|(config.ramp_trigger=1)
+  ramp_imminent: encounter.active&encounter.next.remains<3
+
 # LISTS
-# ============================================================================
 lists:
 
-  # --------------------------------------------------------------------------
-  # MAIN — entry point (auto-executed)
-  # --------------------------------------------------------------------------
+  # === PRE-RAMP: TFT + RenM spread + EnvMist only ===
+  # Toggle fires THIS list only. LC and celestials are NEVER fired by toggle.
+  pre_ramp:
+    - thunder_focus_tea,range_check=none,if=var.tft_ready
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
+    - renewing_mist,range_check=none,if=var.renm_capped
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
+    - enveloping_mist,target=tanks.lowest,if=!tank1.buff.enveloping_mist.up&group.tanks.lowest.range<=40
+    - enveloping_mist,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+
+  # === ENCOUNTER RAMP: encounter timeline CDs only — never fires from toggle ===
+  encounter_ramp:
+    # LC: only on Type 3 (severity 2) tank busters — wipe mechanics only
+    - life_cocoon,interrupt=true,target=tanks.lowest,range_check=none,if=encounter.next_tank.remains<3&encounter.next_tank.severity>=2&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    # LC: only on Type 3 healer events — NOT routine debuffs like Flaming Updraft
+    - life_cocoon,interrupt=true,target=healers.lowest,range_check=none,if=encounter.next_healer.remains<3&encounter.next_healer.severity>=2&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
+    # Celestials: Type 2+ AND health dropping despite the ramp
+    # Higher thresholds than normal since AoE keeps coming — don't wait for crisis
+    - invoke_chi_ji_the_red_crane,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_cotc&(config.rotation_profile=2|config.rotation_profile=4)&config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready
+    - invoke_yulon_the_jade_serpent,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_cotc&config.rotation_profile=1&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready
+    - invoke_yulon_the_jade_serpent,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_moh&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready
+    - celestial_conduit,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<70&var.is_cotc&config.auto_celestials&cooldown.celestial_conduit.ready
+
   main:
     - return,if=player.dead
-    # Out-of-combat block MUST precede the combat gate
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
     - call_action_list,name=spell_queue
     - call_action_list,name=auto_target
     - call_action_list,name=sanity_checks
-    # TANK LIFE COCOON — absolute highest priority. Fires before everything including channels.
+    # LC tank — highest priority
     - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    # Soothing Mist channel — Vivify, SG, EnvMist become instant during channel
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
-    # Framework layers
     - call_action_list,name=defensives,if=config.use_defensives
     - call_action_list,name=interrupt
     - call_action_list,name=dispel
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
-    # VV (Vivacious Vivification) — instant SG on lowest target. High priority, just under CDs.
-    # RSK procs this. Fires always regardless of profile, targets most injured.
+    - call_action_list,name=pre_ramp,if=var.ramp_active
+    - call_action_list,name=encounter_ramp,if=encounter.active&var.ramp_imminent
+    # RSK: keep on CD at all times (Method rule 1). Procs VV for instant SG next line.
+    - rushing_wind_kick,range_check=none,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
+    - rising_sun_kick,range_check=none,if=var.rsk_ready&target.exists&target.enemy
+    # VV proc: instant SG immediately after RSK, always on lowest
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
-    # Profile routing
     - call_action_list,name=cotc_raid,if=(config.rotation_profile=1)&var.is_cotc
     - call_action_list,name=cotc_mplus,if=(config.rotation_profile=2)&var.is_cotc
     - call_action_list,name=moh_raid,if=(config.rotation_profile=3)&var.is_moh
     - call_action_list,name=moh_mplus,if=(config.rotation_profile=4)&var.is_moh
-    # Tank instant-heal safety net — fires AFTER profiles, instant-only to avoid cast loop
     - call_action_list,name=tank_heal
-    # DPS filler (both hero trees, only when group is stable)
+    - call_action_list,name=healer_heal
     - call_action_list,name=dps_cotc,if=config.use_dps_filler&var.is_cotc&!var.group_injured
     - call_action_list,name=dps_moh,if=config.use_dps_filler&var.is_moh&!var.group_injured
 
-  # --------------------------------------------------------------------------
-  # OUT OF COMBAT
-  # --------------------------------------------------------------------------
   out_of_combat:
-    - mana_tea,range_check=none,if=!player.combat&buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&!buff.soothing_mist.up
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
 
-  # --------------------------------------------------------------------------
-  # SOOTHING MIST CHANNEL
-  # While channeling Soothing Mist, Vivify/SG/EnvMist become instant cast.
-  # casting_check=soothing_mist ensures these only fire during the channel.
-  # Priority: most injured first, then spread EnvMist, then general Vivify/SG
-  # --------------------------------------------------------------------------
+  # === SOOTHING MIST CHANNEL ===
   soothing_mist_channel:
-    # Exit channel if nobody needs healing anymore — don't just sit channeling on a full-health tank
-    - stop_casting,interrupt=true,if=player.channeling&group.lowest.health.pct>config.heal_threshold
-    # Emergency — imminent death, instant cast right now
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<25&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<25&group.lowest.range<=40
-    # EnvMist on injured targets — 2s cast reduced to instant, huge value
-    - enveloping_mist,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # Vivify/SG on injured members
+    - enveloping_mist,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
   interrupt:
-    # Paralysis — hard interrupt on target / mouseover / focus
-    - paralysis,interrupt=true,if=target.incoming_cast.kickable.ready
-    - paralysis,interrupt=true,if=mouseover.incoming_cast.kickable.ready
-    - paralysis,interrupt=true,if=focus.incoming_cast.kickable.ready
-    # Leg Sweep — AoE stun on nearby casting enemies
-    - leg_sweep,interrupt=true,if=incoming_cast.8y.stunnable.up
-    # Quaking Palm — single-target CC on target
-    - quaking_palm,interrupt=true,if=target.incoming_cast.kickable.ready
+    - paralysis,if=interrupt.target.check
+    - paralysis.mouseover,range_check=mouseover,if=interrupt.mouseover.check
+    - paralysis.focus,range_check=focus,if=interrupt.focus.check
+    - leg_sweep,if=interrupt.stun.aoe.check
+    - quaking_palm,if=interrupt.cc.check
 
-  # --------------------------------------------------------------------------
-  # DISPEL — Detox removes Magic, Poison, Disease from allies
-  # --------------------------------------------------------------------------
   dispel:
     - detox,cycle=members,if=cycle.dispelable.list&cycle.range<=40
 
-  # --------------------------------------------------------------------------
-  # DEFENSIVES — personal survival only (healthstone, potion)
-  # Life Cocoon is in emergency_heal — fires on critical group members
-  # --------------------------------------------------------------------------
+  # === DEFENSIVES ===
   defensives:
     - healthstone,if=health.pct<=config.healthstone
     - health_potion,if=health.pct<=config.healthpotion
     # Fortifying Brew — self-only 20% HP/DR cooldown at 50% health
     - fortifying_brew,range_check=none,if=health.pct<=50&cooldown.fortifying_brew.ready
 
-  # --------------------------------------------------------------------------
-  # EMERGENCY HEAL — instant cooldowns only, NO cast-time heals
-  # Purpose: trigger the big buttons when things go wrong, then return to
-  # normal rotation. Cast-time heals (SG, Vivify) stay in profile lists
-  # alongside SCK, RSK etc so the rotation flows naturally.
-  # --------------------------------------------------------------------------
+  # === EMERGENCY HEAL: instant CDs only ===
   emergency_heal:
-    # Life Cocoon — TANK FIRST, then members. Prevents casting on player over dying tank.
     - life_cocoon,interrupt=true,target=tanks.lowest,if=config.use_defensives&group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=lowest,if=config.use_defensives&group.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
-    # Revival — mass instant heal; range check via group.lowest.range
+    - life_cocoon,interrupt=true,target=healers.lowest,if=config.use_defensives&group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
+    - life_cocoon,interrupt=true,target=dps.lowest,if=config.use_defensives&group.dps.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
     - revival,interrupt=true,if=!talent.restoral&cooldown.revival.ready&group.lowest.range<=40&(group.count(cycle.health.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - restoral,if=talent.restoral&cooldown.restoral.ready&group.lowest.range<=40&(group.count(cycle.health.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
-    # Soothing Mist — single critically low target: start channel for instant SG/Vivify
-    - soothing_mist,cycle=members,if=!buff.soothing_mist.up&group.count(cycle.health.pct<config.heal_threshold)=1&cycle.health.pct<40&!cycle.dead&cycle.range<=40
+    - soothing_mist,cycle=members,if=!buff.soothing_mist.up&group.count(cycle.health.pct<config.heal_threshold)=1&cycle.health.pct<40&cycle.range<=40
 
-  # --------------------------------------------------------------------------
-  # TANK HEAL — instant-cast only safety net for critically low tanks
-  # Fires AFTER profile lists. Only on Vivacious proc (instant cast).
-  # --------------------------------------------------------------------------
+  # === TANK HEAL: instant-only safety net ===
   tank_heal:
     - vivify,target=tanks.lowest,if=!var.has_sheiluns_gift&group.tanks.lowest.health.pct<config.tank_heal_threshold&group.tanks.lowest.range<=40&var.vivacious_up
     - sheiluns_gift,target=tanks.lowest,if=var.has_sheiluns_gift&group.tanks.lowest.health.pct<config.tank_heal_threshold&group.tanks.lowest.range<=40&var.vivacious_up
 
-  # --------------------------------------------------------------------------
-  # COOLDOWNS — trinkets only
-  # Revival/Restoral and Life Cocoon are in emergency_heal
-  # Major celestial CDs are in each profile list
-  # --------------------------------------------------------------------------
+  # === HEALER HEAL: keep co-healers up ===
+  healer_heal:
+    - life_cocoon,interrupt=true,target=healers.lowest,if=group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
+    - vivify,target=healers.lowest,if=!var.has_sheiluns_gift&group.healers.lowest.health.pct<config.heal_threshold&group.healers.lowest.range<=40&var.vivacious_up
+    - sheiluns_gift,target=healers.lowest,if=var.has_sheiluns_gift&group.healers.lowest.health.pct<config.heal_threshold&group.healers.lowest.range<=40&var.vivacious_up
+
+  # === COOLDOWNS ===
   cooldowns:
     - trinket_1,if=trinket_1.usable&trinket_1.ready
     - trinket_2,if=trinket_2.usable&trinket_2.ready
 
-  # ==========================================================================
-  # COTC RAID
-  # Conduit of the Celestials — Raid (Method.gg / Tincell)
-  # Core rules: RenM + RSK on CD always. TFT paired with RenM (haste Secret
-  # Infusion + HotJS). Vivify after every RWK (Vivacious Vivification proc).
-  # Yu'lon window: EnvM×2 → RenM → RWK → instant Vivify → repeat.
-  # ==========================================================================
   cotc_raid:
-    # Yu'lon active — EnvM×2 → RenM → RWK → Vivify loop (Method steps 3-7)
     - call_action_list,name=cotc_raid_yulon,if=var.yulon_active
-    # HotJS CDR window — alternate RWK/RenM, still spreads EnvMist
     - call_action_list,name=cotc_raid_hotjs,if=var.hotjs_active
-    # 1. RenM cap dump — always first, spread across group
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # 2. TFT + RenM (Method step 1) — haste from Secret Infusion + HotJS proc
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # 3. Invoke Yu'lon immediately after TFT+RenM (Method step 2)
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - invoke_yulon_the_jade_serpent,interrupt=true,if=config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
     - celestial_conduit,interrupt=true,if=config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
-    # 4. RWK — keep on cooldown outside Yu'lon window (Rising Mist HoT extension)
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
-    # 5. Vivify — Vivacious proc after RWK; Zen Pulse proc
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 6. EnvMist — Spiritfont/SoX proc outside Yu'lon window
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # 7. Spread RenM
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # 8. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    # 9. Vivify — general heal on injured
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 9. Life Cocoon when Refreshment talented
     - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
-    - life_cocoon,target=lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.lowest.health.pct<config.life_cocoon_threshold&group.lowest.range<=40
-    # 10. Mana Tea — downtime
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
-    # 11. Fillers
+    - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - blackout_kick,if=target.exists&target.enemy
     - tiger_palm,if=target.exists&target.enemy
 
-  # --------------------------------------------------------------------------
-  # COTC RAID — Yu'lon window (Method steps 3-7, repeating loop)
-  # EnvM×2 → RenM → RWK → Vivify → repeat
-  # --------------------------------------------------------------------------
   cotc_raid_yulon:
-    # RenM cap dump first
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # Step 3: EnvMist x2 — Yu'lon reduces mana cost; TFT makes it instant if just used
-    # Target injured members without it; cast-time here is intentional per Method
-    - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # Step 4: RenM — spread before RWK so Rising Mist extends the fresh HoTs
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # Step 5: RWK — extends all active HoTs via Rising Mist talent
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
-    # Step 6: Vivify — instant via Vivacious Vivification proc after RWK
+    - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # TFT between loops — keep haste buff rolling
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
 
-  # --------------------------------------------------------------------------
-  # COTC RAID — HotJS accelerated window
-  # Alternate RWK/RenM to maximize spread + HoT extension; EnvMist on procs
-  # --------------------------------------------------------------------------
   cotc_raid_hotjs:
-    # RWK/RSK on accelerated CD — core of HotJS loop
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
-    # RenM after each kick — Rising Mist extends the fresh HoTs immediately
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - renewing_mist,if=var.renm_capped
-    # Vivify — Vivacious proc fires right after RWK
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
-    # EnvMist on procs — keep rolling even during HotJS window
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # TFT — accelerated CDR in HotJS; keep pressing
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
-    # Life Cocoon reactive
     - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=lowest,if=group.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
+    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
 
-  # ==========================================================================
-  # COTC M+
-  # Conduit of the Celestials — Mythic+ (Method.gg / Tincell)
-  # Core rules: RSK + SG for M+ (Method). TFT paired with EnvM (Versatility
-  # Secret Infusion + Spiritfont proc). Chi-Ji: instant EnvM chain → RSK →
-  # BOK with 4 ToTM stacks → RSK reset check → SG/EnvM for direct healing.
-  # ==========================================================================
   cotc_mplus:
-    # Chi-Ji active — instant EnvM chain + RSK/BOK burst sequence (Method step 3-8)
     - call_action_list,name=cotc_mplus_chiji,if=var.chiji_active
-    # HotJS CDR window — accelerated RSK/TFT cycle, still spreads EnvMist
     - call_action_list,name=cotc_mplus_hotjs,if=var.hotjs_active
-    # --- Method sequence outside active windows ---
-    # 1. RenM at 3 charges — cap dump before doing anything else
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # 2. TFT + EnvMist (Method step 1) — TFT makes NEXT EnvMist instant + 748% SP heal
-    #    Only fire TFT when someone needs the big heal (below 60%) — it's emergency tier
     - thunder_focus_tea,range_check=none,if=var.tft_ready&group.lowest.health.pct<60
-    # EnvMist immediately after TFT — instant cast, 748% SP, use on most injured
-    - enveloping_mist,cycle=members,if=lastcast.thunder_focus_tea<2&!cycle.buff.enveloping_mist.up&cycle.health.pct<60&!cycle.dead&cycle.range<=40
-    # 3. EnvMist — Spiritfont proc (2 stacks) or SoX proc only outside Chi-Ji
-    #    Outside Chi-Ji EnvMist is a 1.83s cast — only worth it on free procs
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # 4. RSK — Jadefire Teachings converts damage to healing; keep on cooldown
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # 5. Vivify — instant after RSK via Vivacious Vivification proc (spammable filler)
-    #    Bounces to 2 targets via Rapid Diffusion. Fire on proc always.
+    - enveloping_mist,cycle=members,if=lastcast.thunder_focus_tea<2&!cycle.buff.enveloping_mist.up&cycle.health.pct<60&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
-    # 6. Invoke Chi-Ji (Method step 2) — AFTER TFT+EnvMist to get Secret Infusion buff
     - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
     - celestial_conduit,interrupt=true,if=config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
-    # 7. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    # 8. SG / Vivify — spot heal on most injured
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 9. Spread RenM
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # 9. BOK + TP — build Teachings stacks for RSK resets (Method step 8)
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - blackout_kick,if=target.exists&target.enemy
     - tiger_palm,if=target.exists&target.enemy
-    # 10. Mana Tea — downtime
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
 
-  # --------------------------------------------------------------------------
-  # COTC M+ — Chi-Ji window (Method steps 3-8)
-  # Chi-Ji makes EnvMist instant + mana free. Burst sequence:
-  # Instant EnvM chain → RSK → BOK (4 ToTM) → RSK reset → SG/EnvM → TP/BOK
-  # --------------------------------------------------------------------------
   cotc_mplus_chiji:
-    # Step 3: Instant EnvMist chain — cover the whole group while Chi-Ji is up
-    - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # Step 4: RSK — Jadefire Teachings damage-to-healing conversion
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # Step 5: BOK with 4 Teachings stacks (Celestial Harmony grants them on invoke)
+    - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - blackout_kick,if=buff.teachings_of_the_monastery.stack>=4
-    # Step 6: RSK again if reset by Blackout Kick (Pool of Mists)
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # Step 7: SG or EnvMist for spot healing on most injured
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # Step 8: TP/BOK to build more Teachings stacks for RSK resets
+    - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - tiger_palm,if=target.exists&target.enemy
     - blackout_kick,if=target.exists&target.enemy
 
-  # --------------------------------------------------------------------------
-  # COTC M+ — HotJS accelerated window
-  # Heart of the Jade Serpent: reduced RSK/TFT CDs. Still spread EnvMist.
-  # --------------------------------------------------------------------------
   cotc_mplus_hotjs:
-    # RenM cap dump first
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # RSK on cooldown — accelerated by HotJS
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # TFT — CDR makes it available frequently; pair with EnvMist on next line
     - thunder_focus_tea,range_check=none,if=var.tft_ready
-    # EnvMist on procs only — NOT instant outside Chi-Ji, don't cast freely
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # Spread RenM during HotJS
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # Life Cocoon reactive
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=lowest,if=group.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.lowest.range<=40
+    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
 
-  # ==========================================================================
-  # MOH RAID
-  # Master of Harmony — Raid (Method.gg / Tincell)
-  # Method: "plays the same way you would play CotC." Core loop identical;
-  # TFT procs Aspect of Harmony. Ancient Teachings heavily synergises with
-  # AoH passively. Most effects happen without special interactions.
-  # Differences: Endless Draught (2 TFT charges), SG replaces Vivify,
-  # Harmonic Surge 6-stack proc. Less throughput than CotC — no Celestial Conduit.
-  # ==========================================================================
   moh_raid:
-    # --- Priority ---
-    # 1. RenM at 3 charges — cap dump
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # 2. Mana Tea — cap prevention
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
-    # 3. RSK — MoH uses standard Rising Sun Kick (no RWK in raid for MoH)
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # 4. Invoke Yu'lon (Raid) — MoH uses Yu'lon not Chi-Ji for raid
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - invoke_yulon_the_jade_serpent,interrupt=true,if=config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
-    # 5. EnvMist on Spiritfont proc (2 stacks) — injured target
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # 6. Sheilun's Gift on Harmonic Surge 6-stack proc — injured target
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 7. TFT — MoH: Endless Draught (2 charges)
-    #    Overcap prevention: fire immediately if at max charges
     - thunder_focus_tea,range_check=none,if=var.tft_capped
-    #    Align with celestial CD coming off — get the vitality withdraw window
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_yulon_the_jade_serpent.remains<3)
-    #    Fallback: fire if sitting at 1 charge with full recharge imminent
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
-    # 8. Spread RenM
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # 9. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    # 10. Sheilun's Gift — primary heal on injured
     - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 10. Life Cocoon on CD when Refreshment talented — generates Mana Tea stacks
-    # Still requires target to actually need healing (below threshold)
     - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
-    - life_cocoon,target=lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.lowest.health.pct<config.life_cocoon_threshold&group.lowest.range<=40
-    # 11. Mana Tea — downtime (gain Tranquil Tea clouds for SG)
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
-    # 11. Fillers
+    - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - blackout_kick,if=target.exists&target.enemy
     - tiger_palm,if=target.exists&target.enemy
 
-  # ==========================================================================
-  # MOH M+
-  # Master of Harmony — Mythic+ (Method.gg / Tincell)
-  # Method: "plays the same way as CotC in Mythic+." TFT procs AoH.
-  # Ancient Teachings + AoH synergy does most of the healing passively.
-  # NOTE: Method warns MoH has less healing than CotC in keys (no Celestial
-  # Conduit). Consider swapping to CotC if healing feels insufficient.
-  # ==========================================================================
   moh_mplus:
-    # --- Priority ---
-    # 1. RenM at 3 charges — cap dump
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40
+    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    # 2. Mana Tea — cap prevention
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
-    # 3. RSK
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # 4. Invoke Chi-Ji (M+)
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
-    # 5. EnvMist on Spiritfont proc (2 stacks)
-    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&!cycle.dead&cycle.range<=40
-    # 6. Sheilun's Gift on Harmonic Surge 6-stack proc
+    - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    # 7. SCK — AoE heal via Ancient Teachings + damage. ALWAYS fires at aoe threshold.
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    # 8. Sheilun's Gift — general heal on injured, fires as instant inside Soothing Mist
     - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_chi_ji_the_red_crane.remains<3)
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
-    # 9. Spread RenM
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&!cycle.dead&cycle.range<=40&var.renm_has_charge
-    # 10. Blackout Kick — Chi-Ji Gust of Mists scaling with Teachings stacks
+    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - blackout_kick,if=target.exists&target.enemy
-    # 11. Tiger Palm — Mystic Touch + Teachings stacks
     - tiger_palm,if=target.exists&target.enemy
-    # 12. Mana Tea — downtime (Tranquil Tea cloud generation)
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
 
-  # ==========================================================================
-  # DPS FILLER — COTC
-  # Only fires when group is stable (no one injured below threshold)
-  # ==========================================================================
   dps_cotc:
-    # HotJS DPS sub-priority
     - call_action_list,name=dps_cotc_hotjs,if=var.hotjs_active
-    # TFT + RSK combo — highest DPS pairing
     - thunder_focus_tea,range_check=none,if=var.tft_ready
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
-    # Tiger Palm — Mystic Touch, Teachings stacks
     - tiger_palm,if=target.exists&target.enemy
-    # Blackout Kick
     - blackout_kick,if=target.exists&target.enemy
 
   dps_cotc_hotjs:
-    # HotJS: prioritize TFT+RSK loop
     - thunder_focus_tea,range_check=none,if=var.tft_ready
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,if=!var.has_rwk&var.rsk_ready&target.exists&target.enemy
 
-  # ==========================================================================
-  # DPS FILLER — MOH
-  # Aspect of Harmony vitality withdraw window changes DPS priority
-  # ==========================================================================
   dps_moh:
-    # AoH withdraw window — different priority (avoid TP/SCK as they add heal HoTs)
     - call_action_list,name=dps_moh_aoh,if=var.aoh_active
-    # Outside AoH: TFT+RSK combo
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
-    # SCK with Dance of Chi-Ji proc
     - spinning_crane_kick,if=var.dance_of_chiji
-    # RSK
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # Tiger Palm
     - tiger_palm,if=target.exists&target.enemy
-    # Blackout Kick
     - blackout_kick,if=target.exists&target.enemy
 
   dps_moh_aoh:
-    # Aspect of Harmony withdraw: SCK+DoCJ -> RSK -> avoid TP (it adds healing HoTs)
     - spinning_crane_kick,if=var.dance_of_chiji
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
-    # Tiger Palm only if absolutely necessary (applies Aspect of Harmony healing HoTs)
     - tiger_palm,if=target.exists&target.enemy&enemies.combat.8y>=3
     - blackout_kick,if=target.exists&target.enemy
