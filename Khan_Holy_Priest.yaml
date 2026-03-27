@@ -1,7 +1,9 @@
-version: 1.7.0
+version: 1.8.0
 author: Khan
 spec: 257
 name: Khan's Holy Priest
+date: "2026-03-26"
+patch: "12.0"
 description: |
   Holy Priest healing rotation for Midnight 12.0.
   Oracle and Archon hero builds with full content-mode support.
@@ -64,6 +66,13 @@ config:
     min: 1
     max: 100
     default: 88
+
+  prayer_of_healing_hp:
+    label: "Prayer of Healing HP %"
+    type: slider
+    min: 1
+    max: 100
+    default: 85
 
   prayer_of_healing_count:
     label: "Prayer of Healing Min Injured"
@@ -147,7 +156,7 @@ config:
     type: slider
     min: 1
     max: 100
-    value: 91
+    default: 91
 
   power_infusion_self:
     label: "Power Infusion Target"
@@ -193,7 +202,7 @@ variables:
   needs_emergency: group.lowest.health.pct<config.emergency_hp
   needs_tank_healing: group.tanks.lowest.health.pct<config.tank_heal_hp
   needs_member_healing: group.lowest.health.pct<config.member_heal_hp
-  group_heavy_damage: group.count(cycle.health.pct<config.member_heal_hp)>=config.prayer_of_healing_count
+  group_heavy_damage: group.count(cycle.health.pct<config.prayer_of_healing_hp)>=config.prayer_of_healing_count
   group_critical: group.count(cycle.health.pct<config.emergency_hp)>=3
   tank_emergency: group.tanks.lowest.health.pct<config.emergency_hp
   player_low: health.pct<config.emergency_hp
@@ -201,7 +210,6 @@ variables:
 
   # === MANA STATE ===
   mana_ok: mana.pct>config.mana_conserve_pct
-  mana_healthy: mana.pct>50
 
   # === HOLY WORD CHARGE MANAGEMENT ===
   # Holy Words cap at 2 charges — capping wastes CDR from Flash Heal / Prayer of Healing
@@ -258,7 +266,7 @@ lists:
 
   dispel:
     # purify = friendly magic/disease dispel; dispel_magic = offensive enemy purge
-    - purify,cycle=members,if=config.auto_dispel&cycle.dispelable.magic&cycle.range<=40
+    - purify,cycle=members,if=config.auto_dispel&cycle.dispelable.purify&cycle.range<=40
     - dispel_magic,if=talent.dispel_magic.enabled&config.auto_dispel&target.purgeable.magic&target.valid
     - mass_dispel,if=config.auto_dispel&target.valid&group.count(cycle.dispelable.magic)>=3
 
@@ -275,11 +283,11 @@ lists:
     - holy_word_serenity,cycle=tanks,interrupt=true,if=player.combat&var.hw_serenity_ready&var.tank_emergency&cycle.range<=40
     - holy_word_serenity,cycle=members,interrupt=true,if=player.combat&var.hw_serenity_ready&cycle.health.pct<config.emergency_hp&cycle.range<=40
     # Benediction proc — spend Upgraded Flash Heal immediately; free Cosmic Ripples
-    - flash_heal,cycle=members,interrupt=true,if=var.benediction_up&cycle.health.pct<config.emergency_hp&cycle.range<=40
-    # Flash Heal — direct emergency response
-    - flash_heal,cycle=tanks,interrupt=true,if=var.tank_emergency&cycle.range<=40
-    - flash_heal,cycle=members,interrupt=true,if=cycle.health.pct<config.emergency_hp&cycle.range<=40
-    - flash_heal.player,interrupt=true,range_check=none,if=var.player_low
+    - flash_heal,cycle=members,if=var.benediction_up&cycle.health.pct<config.emergency_hp&cycle.range<=40
+    # Flash Heal — direct emergency response; no interrupt so Divine Hymn channel is preserved
+    - flash_heal,cycle=tanks,if=var.tank_emergency&cycle.range<=40
+    - flash_heal,cycle=members,if=cycle.health.pct<config.emergency_hp&cycle.range<=40
+    - flash_heal.player,range_check=none,if=var.player_low
 
   defensive_cooldowns:
     # Translucent Image: Fade becomes 10% damage reduction — use it
@@ -302,12 +310,12 @@ lists:
     - prayer_of_healing,if=talent.prayer_of_healing.enabled&var.in_raid&var.group_heavy_damage&var.mana_ok
 
   major_cooldowns:
-    # Apotheosis — trigger on group damage or when CDs are aligned
-    - apotheosis,interrupt=true,range_check=none,if=player.combat&var.apotheosis_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.apotheosis_count
-    # Divine Hymn — pair with other healer CDs for the 20% healing taken amp
-    - divine_hymn,interrupt=true,range_check=none,if=player.combat&var.divine_hymn_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.divine_hymn_count
-    # Halo — Archon only; 1-min CD granting 4 Surge of Light procs; use on cooldown
-    - halo,interrupt=true,range_check=none,if=player.combat&var.archon_build&var.halo_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.halo_count
+    # Apotheosis — trigger on group damage or when CDs are aligned; never break a channel for it
+    - apotheosis,interrupt=true,range_check=none,if=player.combat&!player.channeling&var.apotheosis_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.apotheosis_count
+    # Divine Hymn — pair with other healer CDs for the 20% healing taken amp; never break a channel for it
+    - divine_hymn,interrupt=true,range_check=none,if=player.combat&!player.channeling&var.divine_hymn_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.divine_hymn_count
+    # Halo — Archon only; 1-min CD granting 4 Surge of Light procs; never break a channel for it
+    - halo,interrupt=true,range_check=none,if=player.combat&!player.channeling&var.archon_build&var.halo_ready&group.count(cycle.health.pct<config.member_heal_hp)>=config.halo_count
     # Power Infusion — give to DPS during their cooldown; or self if configured
     - power_infusion.player,range_check=none,if=player.combat&var.power_infusion_ready&config.power_infusion_self=1&state.cds&var.needs_member_healing
     - power_infusion,range_check=none,if=player.combat&var.power_infusion_ready&config.power_infusion_self=0&state.cds&var.needs_member_healing
@@ -363,9 +371,11 @@ lists:
     - holy_word_serenity,cycle=members,if=var.hw_serenity_ready&cycle.health.pct<config.hw_serenity_hp&cycle.range<=40
     # 6. Holy Nova with Lightburst
     - holy_nova,if=talent.lightburst.enabled&active_enemies>=config.holy_nova_count&target.range<=12
-    # 7. Surge of Light proc → Flash Heal (instant/free)
+    # 7. Prayer of Healing — M+ group AoE heal; top players now use this in M+ not just Raid
+    - prayer_of_healing,if=talent.prayer_of_healing.enabled&group.count(cycle.health.pct<config.prayer_of_healing_hp)>=config.prayer_of_healing_count&var.mana_ok
+    # 8. Surge of Light proc → Flash Heal (instant/free)
     - flash_heal,cycle=members,if=var.surge_of_light_up&cycle.health.pct<config.flash_heal_hp&cycle.range<=40
-    # 8. Flash Heal — primary M+ spot heal
+    # 9. Flash Heal — primary M+ spot heal
     - flash_heal,cycle=members,if=cycle.health.pct<config.flash_heal_hp&var.mana_ok&cycle.range<=40
 
   # === ARCHON RAID ===
@@ -387,7 +397,6 @@ lists:
     - holy_nova,if=talent.lightburst.enabled&active_enemies>=config.holy_nova_count&target.range<=12
     # 6. Surge of Light proc → Prayer of Healing (Archon: Spiritwell routes SoL to PoH instead of Flash Heal)
     - prayer_of_healing,if=talent.prayer_of_healing.enabled&var.surge_of_light_up&var.needs_member_healing
-    - prayer_of_healing,if=talent.prayer_of_healing.enabled&var.surge_of_light_up&var.group_heavy_damage
     # 7. Prayer of Healing — main Archon AoE heal
     - prayer_of_healing,if=talent.prayer_of_healing.enabled&var.group_heavy_damage&var.mana_ok
     # 8. Flash Heal — single-target spot healing
@@ -398,21 +407,25 @@ lists:
   # === ARCHON MYTHIC+ ===
   # Halo provides 4 Surge of Light procs per cast — feed into Flash Heal for M+ spot healing
   archon_mythic_plus:
-    # 1. Holy Word: Serenity near cap — urgent (Ultimate Serenity)
+    # 1. PoM at 2 charges — urgent; dump before CDR is wasted
+    - prayer_of_mending,cycle=members,interrupt=true,if=var.pom_near_cap&cycle.range<=40
+    # 2. Holy Word: Serenity near cap — urgent (Ultimate Serenity)
     - holy_word_serenity,cycle=members,interrupt=true,if=var.hw_serenity_near_cap&cycle.health.pct<config.hw_serenity_hp&cycle.range<=40
-    # 2. Prayer of Mending — efficient; cast on cooldown
+    # 3. Prayer of Mending — efficient; cast on cooldown
     - prayer_of_mending,cycle=members,if=var.pom_ready&cycle.buff.prayer_of_mending.down&cycle.range<=40
     - prayer_of_mending,cycle=members,if=var.pom_ready&cycle.range<=40
-    # 3. Benediction (Upgraded Flash Heal)
+    # 4. Benediction (Upgraded Flash Heal)
     - flash_heal,cycle=members,if=var.benediction_up&cycle.health.pct<config.member_heal_hp&cycle.range<=40
-    # 4. Holy Word: Serenity
+    # 6. Holy Word: Serenity
     - holy_word_serenity,cycle=tanks,if=var.hw_serenity_ready&var.needs_tank_healing&cycle.range<=40
     - holy_word_serenity,cycle=members,if=var.hw_serenity_ready&cycle.health.pct<config.hw_serenity_hp&cycle.range<=40
-    # 5. Holy Nova with Lightburst
+    # 7. Holy Nova with Lightburst
     - holy_nova,if=talent.lightburst.enabled&active_enemies>=config.holy_nova_count&target.range<=12
-    # 6. Surge of Light proc → Flash Heal (Archon M+: Halo generates procs; spend on Flash Heal for spot healing)
+    # 8. Prayer of Healing — M+ group AoE heal; top players now use this in M+ not just Raid
+    - prayer_of_healing,if=talent.prayer_of_healing.enabled&group.count(cycle.health.pct<config.prayer_of_healing_hp)>=config.prayer_of_healing_count&var.mana_ok
+    # 9. Surge of Light proc → Flash Heal (Archon M+: Halo generates procs; spend on Flash Heal for spot healing)
     - flash_heal,cycle=members,if=var.surge_of_light_up&cycle.health.pct<config.flash_heal_hp&cycle.range<=40
-    # 7. Flash Heal — spot heals between procs
+    # 10. Flash Heal — spot heals between procs
     - flash_heal,cycle=members,if=cycle.health.pct<config.flash_heal_hp&var.mana_ok&cycle.range<=40
 
   # === MOVEMENT (instant-cast only) ===
