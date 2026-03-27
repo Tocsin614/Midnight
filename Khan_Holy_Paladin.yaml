@@ -2,7 +2,7 @@
 # Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.4.0
 # ============================================================================
 
-version: "1.4.0"
+version: "1.5.1"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -24,11 +24,13 @@ config:
     label: "Content Mode"
     type: dropdown
     options:
+      - label: "Auto Mode Detection"
+        value: 0
       - label: "Mythic+ (Eternal Flame / Word of Glory)"
         value: 1
       - label: "Raid (Light of Dawn priority)"
         value: 2
-    default: 1
+    default: 0
 
   # ── Emergency ─────────────────────────────────────────────────────────────
   lay_on_hands_hp:
@@ -234,23 +236,6 @@ config:
     max: 5
     default: 3
 
-  # ── Mouseover ─────────────────────────────────────────────────────────────
-  # Uncheck any spell to disable its mouseover cast
-  mouseover_spells:
-    section: "Mouseover"
-    label: "Mouseover Spells"
-    type: multi_select
-    options:
-      - label: "Lay on Hands"
-        value: 1
-      - label: "Word of Glory / Eternal Flame"
-        value: 2
-      - label: "Holy Shock"
-        value: 3
-      - label: "Flash of Light"
-        value: 4
-    default_values: [1, 2, 3, 4]
-
   # ── Utility ───────────────────────────────────────────────────────────────
   auto_blessing_of_freedom:
     section: "Utility"
@@ -293,8 +278,8 @@ variables:
   has_tyrs_deliverance:   talent.tyrs_deliverance
 
   # ── Content Mode ──────────────────────────────────────────────────────────
-  is_mplus: config.content_mode=1
-  is_raid:  config.content_mode=2
+  is_mplus: config.content_mode=1|(config.content_mode=0&!player.inraid)
+  is_raid:  config.content_mode=2|(config.content_mode=0&player.inraid)
 
   # ── Holy Power ────────────────────────────────────────────────────────────
   hp_capped:     holy_power>=5
@@ -323,18 +308,15 @@ variables:
   # ── Group Health ──────────────────────────────────────────────────────────
   tank_needs_healing:   group.tanks.lowest.health.pct<config.tank_hp
   tank_critical:        group.tanks.lowest.health.pct<config.tank_critical_hp
-  group_emergency: group.count(cycle.health.pct<config.emergency_hp)>=1
-  group_critical:  group.count(cycle.health.pct<config.emergency_hp)>=2
-  group_needs_healing:  group.count(cycle.health.pct<config.group_needs_hp)>=2
+  group_emergency: group.count(cycle.health.effective.pct<config.emergency_hp)>=1
+  group_critical:  group.count(cycle.health.effective.pct<config.emergency_hp)>=2
+  group_needs_healing:  group.count(cycle.health.effective.pct<config.group_needs_hp)>=2
   needs_member_healing: group.lowest.health.pct<config.word_of_glory_hp
 
   # ── CD Gates ──────────────────────────────────────────────────────────────
-  aw_condition:  group.count(cycle.health.pct<config.avenging_wrath_hp)>=config.avenging_wrath_injured
-  am_condition:  (group.count(cycle.health.pct<config.aura_mastery_hp)>=config.aura_mastery_injured)|var.group_critical
-  bov_condition: group.count(cycle.health.pct<config.bov_hp)>=config.beacon_of_virtue_injured
-
-  # ── Mouseover ─────────────────────────────────────────────────────────────
-  mo_valid: mouseover.exists&mouseover.alive&mouseover.friendly
+  aw_condition:  group.count(cycle.health.effective.pct<config.avenging_wrath_hp)>=config.avenging_wrath_injured
+  am_condition:  (group.count(cycle.health.effective.pct<config.aura_mastery_hp)>=config.aura_mastery_injured)|var.group_critical
+  bov_condition: group.count(cycle.health.effective.pct<config.bov_hp)>=config.beacon_of_virtue_injured
 
 
 # ============================================================================
@@ -349,18 +331,18 @@ lists:
     - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
     - redemption,cycle=members,if=cycle.dead
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock_hp
-    - flash_of_light,cycle=members,if=cycle.health.pct<config.flash_of_light_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
 
   # Emergency — interrupt=true overrides current cast
   emergency:
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield_hp&!debuff.forbearance.up
-    - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.pct<config.lay_on_hands_hp&cycle.range<=40
-    - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.pct<config.lay_on_hands_hp&cycle.range<=40
+    - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
+    - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
     - divine_protection,if=health.pct<config.divine_protection_hp&cooldown.divine_protection.ready
-    - blessing_of_sacrifice,cycle=tanks,if=cycle.health.pct<config.blessing_of_sacrifice_hp&health.pct>config.bos_self_hp
+    - blessing_of_sacrifice,cycle=tanks,if=cycle.health.effective.pct<config.blessing_of_sacrifice_hp&health.pct>config.bos_self_hp
     - light_of_dawn,if=var.hp_capped&var.group_emergency&var.is_raid
     - eternal_flame,target=lowest,if=var.hp_capped&var.group_emergency&var.has_eternal_flame&var.is_mplus
     - word_of_glory,target=lowest,if=var.hp_capped&var.group_emergency&!var.has_eternal_flame&var.is_mplus
@@ -368,7 +350,6 @@ lists:
   # Interrupts — uses dev interrupt.X.check syntax
   interrupts:
     - hammer_of_justice,if=interrupt.target.check
-    - hammer_of_justice.mouseover,if=interrupt.mouseover.check
     - hammer_of_justice.focus,if=interrupt.focus.check
     - blinding_light,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
@@ -379,7 +360,7 @@ lists:
 
   # Utility — dispels and freedom
   utility:
-    - cleanse,cycle=members,if=config.auto_cleanse&cycle.dispelable.list&cycle.range<=40
+    - cleanse,cycle=members,if=config.auto_cleanse&cycle.dispelable.cleanse&cycle.range<=40
     - blessing_of_freedom.player,if=config.auto_blessing_of_freedom&(player.rooted|player.has_magic_debuff)
     - blessing_of_freedom,cycle=members,if=config.auto_blessing_of_freedom&(cycle.debuff.snare.up|cycle.debuff.root.up)&cycle.range<=40
 
@@ -414,57 +395,48 @@ lists:
     - word_of_glory,target=tanks.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.tank_needs_healing
     - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.flash_of_light_hp
 
-  # Mouseover — mo_valid gate prevents misfires on enemies/dead
-  mouseover_members:
-    - intercession.mouseover,if=mouseover.dead
-    - lay_on_hands.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.pct<config.lay_on_hands_hp
-    - eternal_flame.mouseover,if=config.mouseover_spells.has(2)&var.has_eternal_flame&mouseover.health.pct<config.word_of_glory_hp&var.hp_spendable
-    - word_of_glory.mouseover,if=config.mouseover_spells.has(2)&!var.has_eternal_flame&mouseover.health.pct<config.word_of_glory_hp&var.hp_spendable
-    - holy_shock.mouseover,if=config.mouseover_spells.has(3)&mouseover.health.pct<config.holy_shock_hp&var.holy_shock_ready
-    - flash_of_light.mouseover,if=config.mouseover_spells.has(4)&mouseover.health.pct<config.flash_of_light_hp
-
   # Virtue window — active while Beacon of Virtue is up
   virtue_window:
-    - light_of_dawn,if=var.hp_capped&group.count(cycle.health.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - light_of_dawn,if=var.dp_proc&group.count(cycle.health.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock_hp
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.pct<config.flash_of_light_hp
-    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.hp_capped&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
+    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.dp_proc&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
+    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
+    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - judgment,if=var.hp_deficit_ok&target.enemy
 
   # Avenging Crusader — Judgment and CS convert to healing; maximize both
   avenging_crusader_rotation:
-    - light_of_dawn,if=var.hp_capped&group.count(cycle.health.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.hp_capped&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
+    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.hp_capped&!var.group_needs_healing
-    - light_of_dawn,if=var.dp_proc&group.count(cycle.health.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.dp_proc&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
+    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.dp_proc&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=var.in_ac&!var.in_aw&cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&holy_power.deficit>=1
     - consecration,if=var.has_righteous_judgment&!buff.consecration.up
-    - holy_light,cycle=members,if=var.hod_proc&cycle.health.pct<config.holy_light_hp
-    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
+    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp
+    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.pct<config.flash_of_light_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
 
   # Moving — instant-only rotation
   moving:
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock_hp
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
@@ -490,7 +462,7 @@ lists:
     - light_of_dawn,if=var.dp_proc&var.is_raid
     - eternal_flame,target=lowest,if=var.dp_proc&var.has_eternal_flame&var.is_mplus
     - word_of_glory,target=lowest,if=var.dp_proc&!var.has_eternal_flame&var.is_mplus
-    - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured&!var.in_bov
+    - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured&!var.in_bov
     - eternal_flame,target=lowest,if=var.hp_spendable&var.has_eternal_flame&var.is_mplus&var.needs_member_healing
     - word_of_glory,target=lowest,if=var.hp_spendable&!var.has_eternal_flame&var.is_mplus&var.needs_member_healing
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
@@ -498,26 +470,26 @@ lists:
   # Generators — Holy Shock on cooldown above all else
   generators:
     - consecration,if=var.has_righteous_judgment&!buff.consecration.up
-    - holy_light,cycle=members,if=var.hod_proc&cycle.health.pct<config.holy_light_hp
-    - holy_shock,cycle=members,if=var.holy_shock_ready&var.tyrs_deliverance_up&cycle.health.pct<config.holy_shock_hp
-    - holy_shock,cycle=members,if=var.holy_shock_ready&var.rising_sunlight_up&cycle.health.pct<config.holy_shock_hp
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock_hp
+    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&var.tyrs_deliverance_up&cycle.health.effective.pct<config.holy_shock_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&var.rising_sunlight_up&cycle.health.effective.pct<config.holy_shock_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
     - holy_shock,if=var.holy_shock_ready&target.enemy&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.pct<config.flash_of_light_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
     - judgment,if=var.iof_proc&!var.group_needs_healing&target.enemy
-    - flash_of_light,cycle=members,if=cycle.health.pct<config.flash_of_light_hp
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
 
   # Member healing — cycles group when anyone is below word_of_glory_hp
   member_healing:
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.pct<config.word_of_glory_hp
-    - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock_hp
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.pct<config.flash_of_light_hp
-    - holy_light,cycle=members,if=cycle.health.pct<config.holy_light_hp&mana.pct>config.mana_holy_light
-    - flash_of_light,cycle=members,if=cycle.health.pct<config.flash_of_light_hp
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
+    - holy_light,cycle=members,if=cycle.health.effective.pct<config.holy_light_hp&mana.pct>config.mana_holy_light
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
 
   # Racial — Arcane Torrent (Blood Elf mana return only)
   racial:
@@ -529,7 +501,8 @@ lists:
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target
     - call_action_list,name=out_of_combat,if=!player.combat
-    - return,if=auto_combat.player
+    - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
+    - return,if=!player.combat&config.auto_combat.has(0)
     - return,if=player.channeling
     - call_action_list,name=emergency
     - call_action_list,name=utility
@@ -537,7 +510,6 @@ lists:
     - call_action_list,name=interrupts
     - return,if=player.cc
     - call_action_list,name=beacon_maintenance
-    - call_action_list,name=mouseover_members,if=config.mouseover_spells>0&var.mo_valid&!player.casting
     - call_action_list,name=virtue_window,if=var.in_bov
     - call_action_list,name=avenging_crusader_rotation,if=var.in_ac
     - call_action_list,name=moving,if=player.moving
@@ -548,4 +520,3 @@ lists:
     - call_action_list,name=spenders
     - call_action_list,name=member_healing,if=var.needs_member_healing
     - call_action_list,name=generators
-    - return,if=auto_combat.target
