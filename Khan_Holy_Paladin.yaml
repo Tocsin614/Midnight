@@ -1,8 +1,8 @@
 # ============================================================================
-# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.0
+# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.1
 # ============================================================================
 
-version: "1.6.0"
+version: "1.6.1"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -326,7 +326,7 @@ lists:
 
   # Out of combat — aura, beacons, rez, post/pre-pull heals
   out_of_combat:
-    - devotion_aura,if=buff.devotion_aura.down
+    - devotion_aura,range_check=none,if=buff.devotion_aura.down
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
     - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
