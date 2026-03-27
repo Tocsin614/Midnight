@@ -1,11 +1,11 @@
 # Mistweaver Monk — Midnight 12.0.1 | Spec 270 | Author: Khan
-# Version : 4.7.8  |  Source: Method.gg (Tincell)
-version: "4.7.8"
+# Version : 4.7.9  |  Source: Method.gg (Tincell)
+version: "4.7.9"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
 author: "Khan"
-date: "2026-03-20"
+date: "2026-03-26"
 patch: "12.0.1"
 
 movement_allowed: true
@@ -25,7 +25,7 @@ config:
         value: 3
       - label: "MoH - Mythic+"
         value: 4
-    default: 0
+    default: 1
 
   aoe_threshold:
     section: "Healing"
@@ -100,6 +100,22 @@ config:
     type: checkbox
     label: "Enable Defensive Cooldowns"
     value: true
+
+  healthstone:
+    section: "Defensives"
+    type: slider
+    label: "Healthstone HP% Threshold"
+    min: 1
+    max: 100
+    default: 40
+
+  healthpotion:
+    section: "Defensives"
+    type: slider
+    label: "Health Potion HP% Threshold"
+    min: 1
+    max: 100
+    default: 40
 
   mana_tea_threshold:
     section: "Mana"
@@ -387,13 +403,15 @@ lists:
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - invoke_yulon_the_jade_serpent,interrupt=true,if=config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
-    - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_yulon_the_jade_serpent.remains<3)
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
     - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
@@ -406,9 +424,11 @@ lists:
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
     - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.pct<config.heal_threshold&cycle.range<=40
-    - sheiluns_gift,target=lowest,if=var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
-    - sheiluns_gift,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_chi_ji_the_red_crane.remains<3)
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
