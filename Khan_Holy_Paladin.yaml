@@ -1,8 +1,8 @@
 # ============================================================================
-# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.4
+# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.5
 # ============================================================================
 
-version: "1.6.4"
+version: "1.6.5"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -276,6 +276,7 @@ variables:
   has_righteous_judgment: talent.righteous_judgment
   has_beacon_of_faith:    talent.beacon_of_faith
   has_tyrs_deliverance:   talent.tyrs_deliverance
+  has_resplendent_light:  talent.resplendent_light
 
   # ── Content Mode ──────────────────────────────────────────────────────────
   is_mplus: config.content_mode=1|(config.content_mode=0&!player.inraid)
@@ -338,6 +339,10 @@ lists:
 
   # Emergency — interrupt=true overrides current cast
   emergency:
+    # Heal absorb — highest priority, burns through absorbs immediately
+    - holy_shock,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
+    - holy_light,cycle=members,if=var.has_resplendent_light&group.count(cycle.heal_absorb.pct>0)>=2
+    - flash_of_light,cycle=members,if=cycle.heal_absorb.pct>0
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield_hp&!debuff.forbearance.up
     - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
     - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
