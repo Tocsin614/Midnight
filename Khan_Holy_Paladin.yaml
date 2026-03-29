@@ -1,8 +1,8 @@
 # ============================================================================
-# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.6
+# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.7
 # ============================================================================
 
-version: "1.6.6"
+version: "1.6.7"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -72,6 +72,22 @@ config:
     min: 1
     max: 100
     default: 35
+
+  # ── Absorb Healing ────────────────────────────────────────────────────────
+  absorb_spells:
+    section: "Absorb Healing"
+    label: "Absorb Healing Spells"
+    type: multi_select
+    options:
+      - label: "Holy Shock"
+        value: 0
+      - label: "WoG / Eternal Flame"
+        value: 1
+      - label: "Holy Light (AoE, Resplendent Light)"
+        value: 2
+      - label: "Flash of Light"
+        value: 3
+    default: [0,1,2,3]
 
   # ── Defensives ────────────────────────────────────────────────────────────
   divine_protection_hp:
@@ -340,11 +356,11 @@ lists:
   # Emergency — interrupt=true overrides current cast
   emergency:
     # Heal absorb — highest priority, burns through absorbs immediately
-    - holy_shock,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
-    - eternal_flame,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&var.has_eternal_flame
-    - word_of_glory,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&!var.has_eternal_flame
-    - holy_light,cycle=members,if=var.has_resplendent_light&group.count(cycle.heal_absorb.pct>0)>=2
-    - flash_of_light,cycle=members,if=cycle.heal_absorb.pct>0
+    - holy_shock,interrupt=true,cycle=members,if=config.absorb_spells.has(0)&cycle.heal_absorb.pct>0
+    - eternal_flame,cycle=members,if=config.absorb_spells.has(1)&cycle.heal_absorb.pct>0&var.hp_spendable&var.has_eternal_flame
+    - word_of_glory,cycle=members,if=config.absorb_spells.has(1)&cycle.heal_absorb.pct>0&var.hp_spendable&!var.has_eternal_flame
+    - holy_light,cycle=members,if=config.absorb_spells.has(2)&var.has_resplendent_light&group.count(cycle.heal_absorb.pct>0)>=3
+    - flash_of_light,cycle=members,if=config.absorb_spells.has(3)&cycle.heal_absorb.pct>0
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield_hp&!debuff.forbearance.up
     - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
     - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
