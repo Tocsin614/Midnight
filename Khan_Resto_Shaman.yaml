@@ -1,6 +1,6 @@
 spec: 264
 name: "Khan Resto Shaman"
-version: "1.2.7"
+version: "1.2.8"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0"
@@ -37,7 +37,7 @@ config:
     type: slider
     min: 1
     max: 60
-    default: 34
+    default: 50
 
   tank_heal_hp:
     section: "Healing"
@@ -45,7 +45,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 85
+    default: 99
 
   member_heal_hp:
     section: "Healing"
@@ -53,7 +53,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 80
+    default: 99
 
   riptide_hp:
     section: "Healing"
@@ -61,7 +61,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 90
+    default: 99
 
   chain_heal_hp:
     section: "Healing"
@@ -69,7 +69,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 80
+    default: 85
 
   chain_heal_count:
     section: "Healing"
@@ -85,7 +85,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 80
+    default: 100
 
   healing_rain_count:
     section: "Healing"
@@ -125,7 +125,7 @@ config:
     type: slider
     min: 1
     max: 100
-    default: 35
+    default: 40
 
   mana_conserve_pct:
     section: "General"
@@ -133,7 +133,7 @@ config:
     type: slider
     min: 5
     max: 50
-    default: 20
+    default: 50
 
   dps_threshold:
     section: "Damage"
@@ -141,14 +141,14 @@ config:
     type: slider
     min: 50
     max: 100
-    default: 85
+    default: 99
 
   swiftness_on_cooldown:
     section: "Healing"
     label: "Use Swiftness On Cooldown"
     description: "Cast Ancestral/Nature's Swiftness on cooldown (top of healing priority). Uncheck to use only for emergencies."
     type: checkbox
-    default: false
+    default: true
 
   mouseover_healing:
     section: "Healing"
