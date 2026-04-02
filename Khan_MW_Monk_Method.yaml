@@ -275,7 +275,7 @@ lists:
     - quaking_palm,if=interrupt.cc.check
 
   dispel:
-    - detox,cycle=members,if=cycle.dispelable.detox&cycle.range<=40
+    - detox,cycle=members,if=cycle.dispelable.list.detox&cycle.range<=40
 
   # === DEFENSIVES ===
   defensives:
