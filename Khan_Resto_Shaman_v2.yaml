@@ -1,4 +1,4 @@
-version: "2.0.5"
+version: "2.1.2"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -8,19 +8,11 @@ description: |
   Spell priority built from WarcraftLogs top healer data. New method
 entry: main
 config:
-  mouseover_spells:
-    label: "Mouseover Spells"
-    type: multi_select
-    options:
-      - label: "Riptide"
-        value: 0
-      - label: "Chain Heal"
-        value: 1
-      - label: "Healing Wave"
-        value: 2
-      - label: "Unleash Life"
-        value: 3
-    default: [0,1,2,3]
+  mouseover_healing:
+    section: "Healing"
+    label: "Mouseover Healing"
+    type: checkbox
+    default: true
   riptide_threshold:
     section: "Healing"
     label: "Riptide HP %"
@@ -82,11 +74,6 @@ config:
     label: "Earth Shield on Tanks"
     type: checkbox
     default: true
-  auto_purify:
-    section: "General"
-    label: "Auto Purify Spirit"
-    type: checkbox
-    default: true
   swiftness_on_cooldown:
     section: "Healing"
     label: "Nature's Swiftness On Cooldown"
@@ -126,7 +113,6 @@ lists:
   interrupts:
     - wind_shear,if=interrupt.target.check
     - wind_shear.mouseover,if=interrupt.mouseover.check
-    - wind_shear.focus,if=interrupt.focus.check
     - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check
   out_of_combat:
     - water_shield,range_check=none,if=!buff.water_shield.up
@@ -163,10 +149,10 @@ lists:
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
   member_healing:
-    - riptide.focus_mouseover,range_check=mouseover,if=config.mouseover_spells.has(0)&mouseover.buff.riptide.down&cooldown.riptide.charges>=1
-    - unleash_life.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_spells.has(3)&cooldown.unleash_life.ready
-    - healing_wave.focus_mouseover,range_check=mouseover,if=config.mouseover_spells.has(2)&mouseover.health.pct<config.healing_wave_threshold
-    - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_spells.has(1)&mouseover.health.pct<config.chain_heal_threshold
+    - unleash_life.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=100&cooldown.unleash_life.ready
+    - riptide.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down
+    - healing_wave.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=100
+    - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=config.chain_heal_threshold
     - riptide,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0&var.riptide_overcap
     - chain_heal,cycle=members,if=cycle.heal_absorb.pct>0&group.count(cycle.heal_absorb.pct>0)>=2
     - healing_wave,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
@@ -187,16 +173,10 @@ lists:
     - healing_wave,cycle=members,if=var.unleash_life_up&cycle.health.pct<config.healing_wave_threshold
     - healing_wave,cycle=members,if=cycle.health.pct<config.healing_wave_threshold
   mouseover_friendly:
-    - riptide.mouseover,if=config.mouseover_spells.has(0)&mouseover.health.pct<config.riptide_threshold&cooldown.riptide.charges>=1
-    - chain_heal.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.pct<config.chain_heal_threshold
-    - healing_wave.mouseover,if=config.mouseover_spells.has(2)&mouseover.health.pct<config.healing_wave_threshold
-    - unleash_life.mouseover,if=config.mouseover_spells.has(3)&mouseover.health.pct<config.healing_wave_threshold&cooldown.unleash_life.ready
-  utility:
-    - purify_spirit,cycle=members,if=config.auto_purify&cycle.dispelable.list.purify_spirit
-    - cleanse_spirit,cycle=members,if=config.auto_purify&cycle.dispelable.list.cleanse_spirit
-    - poison_cleansing_totem,range_check=none,if=config.auto_purify&talent.poison_cleansing_totem.enabled&group.count(cycle.dispelable.list.cleanse_spirit)>=2&cooldown.poison_cleansing_totem.ready
-    - totemic_projection,range_check=none,if=cooldown.totemic_projection.ready&player.moving&(var.surging_totem_up|var.stormstream_up|var.healing_stream_up)
-    - spirit_walk,range_check=none,if=player.rooted
+    - riptide.mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down&cooldown.riptide.charges>=1
+    - chain_heal.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.chain_heal_threshold
+    - healing_wave.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold
+    - unleash_life.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold&cooldown.unleash_life.ready
   moving:
     - spiritwalkers_grace,interrupt=true,range_check=none,if=!buff.spiritwalkers_grace.up&var.needs_member_healing
     - riptide,target=lowest,if=group.lowest.health.pct<config.riptide_threshold
@@ -213,11 +193,6 @@ lists:
     - chain_lightning,if=active_enemies>=3
     - lightning_bolt,if=active_enemies<3
   racial_defensive:
-    - stoneform,if=player.dispelable.list.stoneform
-    - fireblood,if=player.dispelable.list.fireblood
-    - will_of_the_forsaken,if=player.feared|player.charmed
-    - escape_artist,if=player.rooted
-    - will_to_survive,if=player.stunned
     - gift_of_the_naaru,if=player.health.pct<var.racial_emergency_hp
     - regeneratin,if=player.health.pct<var.racial_emergency_hp&!player.combat
     - stoneform,if=player.health.pct<var.racial_defensive_hp
@@ -226,7 +201,7 @@ lists:
     - berserking,if=var.group_needs_healing
     - blood_fury,if=var.group_needs_healing
     - ancestral_call,if=var.group_needs_healing
-    - fireblood,if=var.group_needs_healing&!player.dispelable.list.fireblood
+    - fireblood,if=var.group_needs_healing
   racial_cc:
     - war_stomp,if=interrupt.stun.aoe.check
     - quaking_palm,if=target.casting.interruptible
@@ -247,6 +222,7 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
+    - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
@@ -257,7 +233,6 @@ lists:
     - call_action_list,name=interrupts
     - call_action_list,name=racial_cc
     - return,if=player.cc
-    - call_action_list,name=utility
     - call_action_list,name=totem_maintenance
     - call_action_list,name=racial_offensive,if=var.group_needs_healing
     - call_action_list,name=moving,if=player.moving
@@ -265,4 +240,4 @@ lists:
     - call_action_list,name=racial_utility
     - call_action_list,name=trinkets
     - call_action_list,name=member_healing,if=var.needs_member_healing|var.has_absorbs
-    - call_action_list,name=dps_filler,if=group.lowest.health.pct>=config.dps_threshold
+    - call_action_list,name=dps_filler,if=group.lowest.health.pct>=config.dps_threshold&!(config.mouseover_healing&var.mo_friendly_valid)
