@@ -252,9 +252,9 @@ lists:
 
   dispel:
     # purify = friendly magic/disease dispel; dispel_magic = offensive enemy purge
-    - purify,cycle=members,if=config.auto_dispel&cycle.dispelable.purify
+    - purify,cycle=members,if=config.auto_dispel&cycle.dispelable.list.purify
     - dispel_magic,if=talent.dispel_magic.enabled&config.auto_dispel&target.purgeable.magic&target.valid
-    - mass_dispel,if=config.auto_dispel&target.valid&group.count(cycle.dispelable.magic)>=3
+    - mass_dispel,if=config.auto_dispel&target.valid&group.count(cycle.dispelable.list.mass_dispel)>=3
 
   interrupts:
     - psychic_scream,if=interrupt.cc.check
@@ -440,8 +440,8 @@ lists:
     - smite,if=player.combat&target.valid&group.lowest.health.pct>=config.dps_threshold
 
   racial_defensive:
-    - stoneform,if=player.dispelable
-    - fireblood,if=player.dispelable
+    - stoneform,if=player.dispelable.list.stoneform
+    - fireblood,if=player.dispelable.list.fireblood
     - will_of_the_forsaken,if=player.feared|player.charmed
     - escape_artist,if=player.rooted
     - gift_of_the_naaru,if=health.pct<30
@@ -452,7 +452,7 @@ lists:
     - berserking,if=var.apotheosis_active
     - blood_fury,if=var.apotheosis_active
     - ancestral_call,if=var.apotheosis_active
-    - fireblood,if=var.apotheosis_active&!player.dispelable
+    - fireblood,if=var.apotheosis_active&!player.dispelable.list.fireblood
 
   main:
     - call_action_list,name=spell_queue
