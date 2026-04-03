@@ -224,18 +224,17 @@ lists:
     - celestial_conduit,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<70&var.is_cotc&config.auto_celestials&cooldown.celestial_conduit.ready
 
   main:
-    - return,if=player.dead
+    - call_action_list,name=spell_queue
+    - call_action_list,name=sanity_checks
+    - call_action_list,name=auto_target
+    - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
-    - call_action_list,name=spell_queue
-    - call_action_list,name=auto_target
-    - call_action_list,name=sanity_checks
     # LC tank — highest priority
     - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
     - call_action_list,name=defensives,if=config.use_defensives
     - call_action_list,name=interrupt
-    - call_action_list,name=dispel
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
     - call_action_list,name=pre_ramp,if=var.ramp_active
@@ -273,9 +272,6 @@ lists:
     - paralysis.focus,range_check=focus,if=interrupt.focus.check
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
-
-  dispel:
-    - detox,cycle=members,if=cycle.dispelable.list.detox&cycle.range<=40
 
   # === DEFENSIVES ===
   defensives:
