@@ -1,6 +1,6 @@
 spec: 1468
 name: "Preservation Evoker - Chronowarden (Method)"
-version: "1.5.2"
+version: "1.5.3"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0"
@@ -145,11 +145,11 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
+    - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=empower_releases
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
     - call_action_list,name=defensives
-    - call_action_list,name=auto_heal
     - call_action_list,name=emergency
     - call_action_list,name=cooldowns,if=state.cds
     - call_action_list,name=stasis,if=var.stasis_window
@@ -250,7 +250,6 @@ lists:
 
   healing:
     - call_action_list,name=emergency
-    - call_action_list,name=dispels
     - call_action_list,name=maintenance
     - call_action_list,name=layer2
 
@@ -260,9 +259,6 @@ lists:
     # tank1 direct check: fires even when InRangeAlpha=NO excludes tank from cycle/group systems.
     - verdant_embrace,cycle=members,if=cycle.tank&var.tank1_critical
     - verdant_embrace,target=lowest,if=group.lowest.health.pct<config.emergency_hp&group.lowest.range<=30
-
-  dispels:
-    - naturalize,cycle=members,if=cycle.dispelable.list.naturalize&cycle.range<=30
 
   # Layer 1: Dream Breath and Reversion blanket.
   # Empower initiation only — release handled by empower_releases.
