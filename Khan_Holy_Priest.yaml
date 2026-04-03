@@ -168,11 +168,6 @@ config:
         value: 1
     default: 0
 
-  auto_dispel:
-    label: "Auto Dispel"
-    type: checkbox
-    default: true
-
   trinket_usage:
     label: "Trinket Usage"
     type: dropdown
@@ -249,12 +244,6 @@ lists:
     - prayer_of_mending,cycle=members,range_check=none,if=var.pom_ready&cycle.buff.prayer_of_mending.down
     - flash_heal.player,range_check=none,if=var.player_needs_healing
     - renew,cycle=members,range_check=none,if=talent.renew.enabled&cycle.health.pct<config.renew_hp&cycle.buff.renew.down
-
-  dispel:
-    # purify = friendly magic/disease dispel; dispel_magic = offensive enemy purge
-    - purify,cycle=members,if=config.auto_dispel&cycle.dispelable.list.purify
-    - dispel_magic,if=talent.dispel_magic.enabled&config.auto_dispel&target.purgeable.magic&target.valid
-    - mass_dispel,if=config.auto_dispel&target.valid&group.count(cycle.dispelable.list.mass_dispel)>=3
 
   interrupts:
     - psychic_scream,if=interrupt.cc.check
@@ -440,10 +429,6 @@ lists:
     - smite,if=player.combat&target.valid&group.lowest.health.pct>=config.dps_threshold
 
   racial_defensive:
-    - stoneform,if=player.dispelable.list.stoneform
-    - fireblood,if=player.dispelable.list.fireblood
-    - will_of_the_forsaken,if=player.feared|player.charmed
-    - escape_artist,if=player.rooted
     - gift_of_the_naaru,if=health.pct<30
     - stoneform,if=health.pct<30
     - fireblood,if=health.pct<30
@@ -458,13 +443,13 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target
+    - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=interrupts
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
     - call_action_list,name=emergency_healing,if=var.needs_emergency
     - call_action_list,name=defensive_cooldowns
-    - call_action_list,name=dispel
     - call_action_list,name=racial_defensive
     - call_action_list,name=major_cooldowns
     - call_action_list,name=trinkets
