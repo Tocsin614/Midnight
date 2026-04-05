@@ -1,4 +1,4 @@
-version: "2.1.2"
+version: "2.1.5"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -110,14 +110,11 @@ variables:
   racial_emergency_hp: 35
   racial_heal_ally_hp: 65
 lists:
-  interrupts:
-    - wind_shear,if=interrupt.target.check
-    - wind_shear.mouseover,if=interrupt.mouseover.check
-    - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check
   out_of_combat:
     - water_shield,range_check=none,if=!buff.water_shield.up
     - skyfury,range_check=none,if=!buff.skyfury.up
     - earthliving_weapon,range_check=none,if=!mainhand.enchant.up
+    - ghost_wolf,range_check=none,if=player.moving&!buff.ghost_wolf.up&cooldown.riptide.charges<2
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
     - riptide,cycle=members,if=cycle.buff.riptide.down
@@ -126,7 +123,7 @@ lists:
   emergency:
     - astral_shift,range_check=none,if=player.health.pct<config.astral_shift_hp&!buff.astral_shift.up
     - earth_elemental,range_check=none,if=talent.earth_elemental.enabled&player.health.pct<config.astral_shift_hp&!cooldown.astral_shift.ready
-    - spirit_link_totem,interrupt=true,range_check=none,if=var.group_critical&var.spirit_link_ready
+    - spirit_link_totem,interrupt=true,range_check=none,if=var.group_critical&var.spirit_link_ready&!player.moving
     - ancestral_swiftness,interrupt=true,range_check=none,if=talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
     - natures_swiftness,interrupt=true,range_check=none,if=talent.natures_swiftness.enabled&!var.natures_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
     - healing_surge,interrupt=true,cycle=members,if=(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.astral_shift_hp
@@ -140,12 +137,12 @@ lists:
     - ancestral_guidance,interrupt=true,range_check=none,if=talent.ancestral_guidance.enabled&cooldown.ancestral_guidance.ready&var.group_needs_healing
     - earthen_wall_totem,interrupt=true,range_check=none,if=talent.earthen_wall_totem.enabled&cooldown.earthen_wall_totem.ready&var.group_needs_healing
     - mana_tide_totem,interrupt=true,range_check=none,if=talent.mana_tide_totem.enabled&cooldown.mana_tide_totem.ready&player.mana.pct<25
-    - spirit_link_totem,interrupt=true,range_check=none,if=var.spirit_link_ready&var.group_emergency
+    - spirit_link_totem,interrupt=true,range_check=none,if=var.spirit_link_ready&var.group_emergency&!player.moving
     - wind_rush_totem,range_check=none,if=talent.wind_rush_totem.enabled&cooldown.wind_rush_totem.ready&player.moving
   totem_maintenance:
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
     - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
-    - healing_stream_totem,range_check=none,if=!var.healing_stream_up
+    - healing_stream_totem,range_check=none,if=!var.healing_stream_up&!player.moving
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
   member_healing:
@@ -184,7 +181,6 @@ lists:
     - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
     - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
-    - healing_stream_totem,range_check=none,if=!var.healing_stream_up
     - lava_burst,if=var.lava_surge_up
   dps_filler:
     - flame_shock,if=!dot.flame_shock.ticking&target.valid&target.enemy
@@ -202,12 +198,6 @@ lists:
     - blood_fury,if=var.group_needs_healing
     - ancestral_call,if=var.group_needs_healing
     - fireblood,if=var.group_needs_healing
-  racial_cc:
-    - war_stomp,if=interrupt.stun.aoe.check
-    - quaking_palm,if=target.casting.interruptible
-    - haymaker,if=target.casting.interruptible
-    - bull_rush,if=target.casting.interruptible
-    - arcane_pulse,if=enemies.8y.count>=3
   racial_utility:
     - arcane_torrent,if=player.mana.pct<=90
     - gift_of_the_naaru,target=lowest,if=group.lowest.health.pct<var.racial_heal_ally_hp
@@ -222,6 +212,9 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
+    - wind_shear,if=interrupt.target.check
+    - wind_shear.mouseover,if=interrupt.mouseover.check
+    - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check&!player.moving
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
@@ -230,8 +223,6 @@ lists:
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
-    - call_action_list,name=interrupts
-    - call_action_list,name=racial_cc
     - return,if=player.cc
     - call_action_list,name=totem_maintenance
     - call_action_list,name=racial_offensive,if=var.group_needs_healing
