@@ -1,4 +1,4 @@
-version: "2.1.5"
+version: "2.1.6"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -123,7 +123,7 @@ lists:
   emergency:
     - astral_shift,range_check=none,if=player.health.pct<config.astral_shift_hp&!buff.astral_shift.up
     - earth_elemental,range_check=none,if=talent.earth_elemental.enabled&player.health.pct<config.astral_shift_hp&!cooldown.astral_shift.ready
-    - spirit_link_totem,interrupt=true,range_check=none,if=var.group_critical&var.spirit_link_ready&!player.moving
+    - spirit_link_totem,interrupt=true,range_check=none,if=var.group_critical&var.spirit_link_ready&!player.moving.time>3
     - ancestral_swiftness,interrupt=true,range_check=none,if=talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
     - natures_swiftness,interrupt=true,range_check=none,if=talent.natures_swiftness.enabled&!var.natures_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
     - healing_surge,interrupt=true,cycle=members,if=(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.astral_shift_hp
@@ -137,12 +137,12 @@ lists:
     - ancestral_guidance,interrupt=true,range_check=none,if=talent.ancestral_guidance.enabled&cooldown.ancestral_guidance.ready&var.group_needs_healing
     - earthen_wall_totem,interrupt=true,range_check=none,if=talent.earthen_wall_totem.enabled&cooldown.earthen_wall_totem.ready&var.group_needs_healing
     - mana_tide_totem,interrupt=true,range_check=none,if=talent.mana_tide_totem.enabled&cooldown.mana_tide_totem.ready&player.mana.pct<25
-    - spirit_link_totem,interrupt=true,range_check=none,if=var.spirit_link_ready&var.group_emergency&!player.moving
-    - wind_rush_totem,range_check=none,if=talent.wind_rush_totem.enabled&cooldown.wind_rush_totem.ready&player.moving
+    - spirit_link_totem,interrupt=true,range_check=none,if=var.spirit_link_ready&var.group_emergency&!player.moving.time>3
+    - wind_rush_totem,range_check=none,if=talent.wind_rush_totem.enabled&cooldown.wind_rush_totem.ready&player.moving.time>3
   totem_maintenance:
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
     - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
-    - healing_stream_totem,range_check=none,if=!var.healing_stream_up&!player.moving
+    - healing_stream_totem,range_check=none,if=!var.healing_stream_up&!player.moving.time>3.time>3
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
   member_healing:
@@ -214,7 +214,7 @@ lists:
     - call_action_list,name=auto_target_ranged
     - wind_shear,if=interrupt.target.check
     - wind_shear.mouseover,if=interrupt.mouseover.check
-    - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check&!player.moving
+    - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check&!player.moving.time>3
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
