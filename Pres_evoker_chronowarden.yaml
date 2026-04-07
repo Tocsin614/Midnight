@@ -1,6 +1,6 @@
 spec: 1468
 name: "Preservation Evoker - Chronowarden (Method)"
-version: "1.5.3"
+version: "1.5.9"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0"
@@ -144,7 +144,7 @@ lists:
   main:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
-    - call_action_list,name=auto_target_ranged
+    - call_action_list,name=auto_target
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=empower_releases
     - call_action_list,name=out_of_combat,if=!player.combat
@@ -155,7 +155,8 @@ lists:
     - call_action_list,name=stasis,if=var.stasis_window
     - call_action_list,name=encounter_ramp,if=var.encounter_active
     - call_action_list,name=healing
-    - call_action_list,name=damage
+    - call_action_list,name=empower_releases_fire_breath
+    - call_action_list,name=damage,if=var.group_healthy
 
   # casting_check=SPELL bypasses the "player casting/channeling" sanity fail.
   # These steps ONLY evaluate while mid-empower and release at the configured rank.
@@ -165,6 +166,7 @@ lists:
     - dream_breath,empower_to=3,if=var.db_r3
     - dream_breath,empower_to=2,if=var.db_r2
     - dream_breath,empower_to=1,if=var.db_r1
+  empower_releases_fire_breath:
     - fire_breath,empower_to=4,if=config.fire_breath_rank=4
     - fire_breath,empower_to=3,if=config.fire_breath_rank=3
     - fire_breath,empower_to=2,if=config.fire_breath_rank=2
@@ -223,16 +225,21 @@ lists:
 
     # Fill: Method M+ Chrono standalone — DB first (MB proc), TA second (Echoes), VE third (consumes Echoes).
     - dream_breath,if=var.stasis_filling&buff.stasis.up&cooldown.dream_breath.ready&!player.channeling&!player.moving
-    - temporal_anomaly,if=var.stasis_filling&buff.stasis.up&cooldown.temporal_anomaly.ready&!player.moving
+    - temporal_anomaly,if=var.stasis_filling&cooldown.temporal_anomaly.ready
     - verdant_embrace,target=lowest,if=var.stasis_filling&buff.stasis.up&group.lowest.range<=30
 
     # Leak guard: hold here while filling so nothing else gets stored accidentally.
-    - return,if=var.stasis_filling
+    # Releases when someone drops below emergency_hp — lets healing list through even mid-fill.
+    - return,if=var.stasis_filling&group.lowest.health.pct>config.emergency_hp
 
   out_of_combat:
     # Blessing of the Bronze: apply to any member missing it before combat.
     - blessing_of_the_bronze.player,range_check=none,if=!player.combat&buff.blessing_of_the_bronze.down
     - reversion.player,range_check=none,if=!player.combat&buff.reversion.down
+    # Group top-off between pulls.
+    - reversion,cycle=members,if=cycle.health.pct<90&cycle.buff.reversion.down&cycle.range<=30
+    - emerald_blossom,if=group.count(cycle.health.pct<85)>=2
+    - living_flame,target=lowest,if=group.lowest.health.pct<90&group.lowest.range<=30
 
   defensives:
     - obsidian_scales.player,range_check=none,if=health.pct<config.obsidian_hp
@@ -255,10 +262,10 @@ lists:
 
   emergency:
     # Self-heal first — healer dying stops all healing. Direct health.pct check, no group system.
-    - verdant_embrace.player,range_check=none,if=health.pct<config.emergency_hp
+    - verdant_embrace.player,range_check=none,interrupt=true,if=health.pct<config.emergency_hp
     # tank1 direct check: fires even when InRangeAlpha=NO excludes tank from cycle/group systems.
-    - verdant_embrace,cycle=members,if=cycle.tank&var.tank1_critical
-    - verdant_embrace,target=lowest,if=group.lowest.health.pct<config.emergency_hp&group.lowest.range<=30
+    - verdant_embrace,cycle=members,interrupt=true,if=cycle.tank&var.tank1_critical
+    - verdant_embrace,target=lowest,interrupt=true,if=group.lowest.health.pct<config.emergency_hp&group.lowest.range<=30
 
   # Layer 1: Dream Breath and Reversion blanket.
   # Empower initiation only — release handled by empower_releases.
@@ -292,6 +299,9 @@ lists:
     - verdant_embrace,target=lowest,if=group.lowest.health.pct<config.emergency_hp&cooldown.verdant_embrace.charges>=1&group.lowest.range<=30
     # With 4pc: VE also generates free EB + Twin Echoes — cast more aggressively on any low member.
     - verdant_embrace,cycle=members,if=var.has_4pc&cycle.health.pct<85&cooldown.verdant_embrace.charges>=1&cycle.range<=30
+    # Primacy maintenance: guide says refresh every 15s with non-echoed VE.
+    # Only fires on 2nd charge so 1 charge is always reserved for echo payoff combos.
+    - verdant_embrace,target=lowest,if=cooldown.verdant_embrace.charges>=2&group.lowest.range<=30
     # MB proc: cast Reversion — game upgrades in-flight to Merithra's Blessing.
     - reversion,target=lowest,if=var.mb_proc&group.lowest.health.pct<98&group.lowest.range<=30
     - chrono_flames,target=lowest,if=var.lifespark_up&group.lowest.range<=30
@@ -302,15 +312,22 @@ lists:
     - emerald_blossom,if=!var.has_4pc&group.count(cycle.health.pct<65)>=3
     # With 4pc: VE handles Twin Echoes. EB only as bonus AoE heal when group is chunked.
     - emerald_blossom,if=var.has_4pc&group.count(cycle.health.pct<65)>=3&var.essence_burst_up
+    # Chrono Flames: cast-time heal filler when group is moderately damaged and all heals are on CD.
+    # Fires standalone (no lifespark proc needed) — fills the 2-4s gap at 75-80% HP.
+    - chrono_flames,target=lowest,if=group.lowest.health.pct<80&group.lowest.range<=30&!player.channeling
+    # Disintegrate: Energy Loop mana regen — only when heals are on CD and group is reasonably safe.
+    - disintegrate,if=talent.energy_loop.enabled&!player.moving&!player.channeling&group.lowest.health.pct>=80
+    - disintegrate,ignore_queue=true,if=talent.energy_loop.enabled&player.channeling&group.lowest.health.pct>=80
 
-  # Fire Breath always fires on CD — proc generation regardless of group HP.
-  # Fillers only when group is healthy.
+  # Damage/mana fillers — only entered when group_healthy (gated in main).
   damage:
-    - fire_breath,if=cooldown.fire_breath.ready&!player.channeling&!player.moving
     - return,if=!var.group_healthy
-    - disintegrate,if=talent.energy_loop
-    # Chrono Flames DPS filler — only when group is healthy, never interrupts Disintegrate channel.
-    - chrono_flames,ignore_queue=true,if=var.group_healthy&!player.channeling
+    # Disintegrate: Energy Loop mana engine. Full channel = ~7,200 mana via Energy Loop.
+    - disintegrate,if=talent.energy_loop.enabled&!player.moving&!player.channeling
+    - disintegrate,ignore_queue=true,if=talent.energy_loop.enabled&player.channeling
+    # Living Flame: main filler — generates Essence Burst (20% per cast) and Chrono Flames proc.
+    - living_flame,if=!var.lifespark_up&!player.channeling
+    # Chrono Flames: fires after Living Flame proc (Lifespark up).
+    - chrono_flames,ignore_queue=true,&!player.channeling
     # Azure Strike: absolute last-resort filler. Instant, no CD, no resource cost.
-    # Fires when everything else is unavailable — eliminates dead globals entirely.
     - azure_strike
