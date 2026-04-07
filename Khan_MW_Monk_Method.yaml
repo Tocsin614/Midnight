@@ -1,6 +1,6 @@
 # Mistweaver Monk — Midnight 12.0.1 | Spec 270 | Author: Khan
-# Version : 4.9.0  |  Source: Method.gg (Tincell)
-version: "4.9.0"
+# Version : 4.9.2  |  Source: Method.gg (Tincell)
+version: "4.9.2"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
@@ -95,59 +95,14 @@ config:
     label: "Enable DPS Filler (when no heal needed)"
     value: true
 
-  use_defensives:
-    section: "Defensives"
-    type: checkbox
-    label: "Enable Defensive Cooldowns"
-    value: true
-
-  healthstone:
+  fortifying_brew_hp:
     section: "Defensives"
     type: slider
-    label: "Healthstone HP% Threshold"
+    label: "Fortifying Brew HP% Threshold"
     min: 1
-    max: 100
-    default: 40
+    max: 99
+    default: 45
 
-  healthpotion:
-    section: "Defensives"
-    type: slider
-    label: "Health Potion HP% Threshold"
-    min: 1
-    max: 100
-    default: 40
-
-  mana_tea_threshold:
-    section: "Mana"
-    type: slider
-    label: "Mana Tea Stack Threshold (min stacks to use)"
-    min: 1
-    max: 100
-    default: 10
-
-  mana_tea_mana:
-    section: "Mana"
-    type: slider
-    label: "Mana Tea Mana Threshold (only use below this % mana)"
-    min: 1
-    max: 100
-    default: 80
-
-  ramp_trigger:
-    section: "Ramp"
-    type: toggle
-    label: "Force Pre-Ramp Spread"
-    description: "Manually trigger RenM+TFT spread sequence. Hotkey this for pull or known damage events."
-    show_override: true
-    spell: 116680
-
-  ramp_window:
-    section: "Ramp"
-    type: slider
-    label: "Ramp Window (seconds before event)"
-    min: 3
-    max: 15
-    default: 8
 
 # VARIABLES
 variables:
@@ -188,40 +143,12 @@ variables:
   # Group health
   group_injured: group.lowest.health.pct<config.dps_threshold
   group_critical: group.lowest.health.pct<50
-  group_needs_cd: (group.lowest.health.pct<config.cooldown_threshold)|(encounter.active&encounter.next.remains<3)
-  group_needs_conduit: (group.lowest.health.pct<config.celestial_conduit_threshold)|(encounter.active&encounter.next.remains<3)
-
-  # Ramp
-  # ramp_active fires on encounter timeline OR manual toggle — triggers Phase 1 spread only
-  # ramp_imminent fires ONLY on encounter timeline — Phase 2 CDs never blow on toggle alone
-  ramp_active: (encounter.active&encounter.next.remains<config.ramp_window)|(config.ramp_trigger=1)
-  ramp_imminent: encounter.active&encounter.next.remains<3
+  group_needs_cd: group.lowest.health.pct<config.cooldown_threshold
+  group_needs_conduit: group.lowest.health.pct<config.celestial_conduit_threshold
 
 # LISTS
 lists:
 
-  # === PRE-RAMP: TFT + RenM spread + EnvMist only ===
-  # Toggle fires THIS list only. LC and celestials are NEVER fired by toggle.
-  pre_ramp:
-    - thunder_focus_tea,range_check=none,if=var.tft_ready
-    - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
-    - renewing_mist,range_check=none,if=var.renm_capped
-    - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    - enveloping_mist,target=tanks.lowest,if=!tank1.buff.enveloping_mist.up&group.tanks.lowest.range<=40
-    - enveloping_mist,target=lowest,if=group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-
-  # === ENCOUNTER RAMP: encounter timeline CDs only — never fires from toggle ===
-  encounter_ramp:
-    # LC: only on Type 3 (severity 2) tank busters — wipe mechanics only
-    - life_cocoon,interrupt=true,target=tanks.lowest,range_check=none,if=encounter.next_tank.remains<3&encounter.next_tank.severity>=2&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    # LC: only on Type 3 healer events — NOT routine debuffs like Flaming Updraft
-    - life_cocoon,interrupt=true,target=healers.lowest,range_check=none,if=encounter.next_healer.remains<3&encounter.next_healer.severity>=2&cooldown.life_cocoon.ready&group.healers.lowest.health.pct<=config.life_cocoon_threshold&group.healers.lowest.range<=40
-    # Celestials: Type 2+ AND health dropping despite the ramp
-    # Higher thresholds than normal since AoE keeps coming — don't wait for crisis
-    - invoke_chi_ji_the_red_crane,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_cotc&(config.rotation_profile=2|config.rotation_profile=4)&config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready
-    - invoke_yulon_the_jade_serpent,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_cotc&config.rotation_profile=1&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready
-    - invoke_yulon_the_jade_serpent,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<60&var.is_moh&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready
-    - celestial_conduit,interrupt=true,range_check=none,if=var.ramp_imminent&encounter.next.severity>=1&group.lowest.health.pct<70&var.is_cotc&config.auto_celestials&cooldown.celestial_conduit.ready
 
   main:
     - call_action_list,name=spell_queue
@@ -233,15 +160,17 @@ lists:
     # LC tank — highest priority
     - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
-    - call_action_list,name=defensives,if=config.use_defensives
-    - call_action_list,name=interrupt
+    - call_action_list,name=defensives
+    - paralysis,if=interrupt.target.check
+    - paralysis.mouseover,range_check=mouseover,if=interrupt.mouseover.check
+    - paralysis.focus,range_check=focus,if=interrupt.focus.check
+    - leg_sweep,if=interrupt.stun.aoe.check
+    - quaking_palm,if=interrupt.cc.check
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
-    - call_action_list,name=pre_ramp,if=var.ramp_active
-    - call_action_list,name=encounter_ramp,if=encounter.active&var.ramp_imminent
     # RSK: keep on CD at all times (Method rule 1). Procs VV for instant SG next line.
-    - rushing_wind_kick,range_check=none,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
-    - rising_sun_kick,range_check=none,if=var.rsk_ready&target.exists&target.enemy
+    - rushing_wind_kick,range_check=none,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy&target.range<=5
+    - rising_sun_kick,range_check=none,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
     # VV proc: instant SG immediately after RSK, always on lowest
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
@@ -255,7 +184,6 @@ lists:
     - call_action_list,name=dps_moh,if=config.use_dps_filler&var.is_moh&!var.group_injured
 
   out_of_combat:
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&!buff.soothing_mist.up
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
 
@@ -266,25 +194,16 @@ lists:
     - enveloping_mist,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-  interrupt:
-    - paralysis,if=interrupt.target.check
-    - paralysis.mouseover,range_check=mouseover,if=interrupt.mouseover.check
-    - paralysis.focus,range_check=focus,if=interrupt.focus.check
-    - leg_sweep,if=interrupt.stun.aoe.check
-    - quaking_palm,if=interrupt.cc.check
 
   # === DEFENSIVES ===
   defensives:
-    - healthstone,if=health.pct<=config.healthstone
-    - health_potion,if=health.pct<=config.healthpotion
-    # Fortifying Brew — self-only 20% HP/DR cooldown at 50% health
-    - fortifying_brew,range_check=none,if=health.pct<=50&cooldown.fortifying_brew.ready
+    - fortifying_brew,range_check=none,if=health.pct<=config.fortifying_brew_hp&cooldown.fortifying_brew.ready
 
   # === EMERGENCY HEAL: instant CDs only ===
   emergency_heal:
-    - life_cocoon,interrupt=true,target=tanks.lowest,if=config.use_defensives&group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=healers.lowest,if=config.use_defensives&group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
-    - life_cocoon,interrupt=true,target=dps.lowest,if=config.use_defensives&group.dps.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
+    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
+    - life_cocoon,interrupt=true,target=healers.lowest,if=group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
+    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
     - revival,interrupt=true,if=!talent.restoral&cooldown.revival.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - restoral,if=talent.restoral&cooldown.restoral.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - soothing_mist,cycle=members,if=!buff.soothing_mist.up&group.count(cycle.health.effective.pct<config.heal_threshold)=1&cycle.health.effective.pct<40&cycle.range<=40
@@ -312,8 +231,10 @@ lists:
     - renewing_mist,if=var.renm_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    - invoke_yulon_the_jade_serpent,interrupt=true,if=config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
-    - celestial_conduit,interrupt=true,if=config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
+    - invoke_yulon_the_jade_serpent,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
+    - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.pct>85&!buff.soothing_mist.up
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.zen_pulse_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
@@ -326,9 +247,8 @@ lists:
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
     - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
-    - blackout_kick,if=target.exists&target.enemy
-    - tiger_palm,if=target.exists&target.enemy
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   cotc_raid_yulon:
     - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
@@ -365,24 +285,25 @@ lists:
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
-    - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
-    - celestial_conduit,interrupt=true,if=config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
+    - invoke_chi_ji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
+    - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.pct>85&!buff.soothing_mist.up
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    - blackout_kick,if=target.exists&target.enemy
-    - tiger_palm,if=target.exists&target.enemy
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   cotc_mplus_chiji:
     - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
-    - blackout_kick,if=buff.teachings_of_the_monastery.stack>=4
+    - blackout_kick,if=buff.teachings_of_the_monastery.stack>=4&target.range<=5
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
-    - tiger_palm,if=target.exists&target.enemy
-    - blackout_kick,if=target.exists&target.enemy
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
 
   cotc_mplus_hotjs:
     - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
@@ -396,8 +317,9 @@ lists:
   moh_raid:
     - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
-    - invoke_yulon_the_jade_serpent,interrupt=true,if=config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.pct>85&!buff.soothing_mist.up
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
+    - invoke_yulon_the_jade_serpent,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_yulon_the_jade_serpent.ready&var.group_needs_cd&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
@@ -410,15 +332,15 @@ lists:
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
     - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
-    - blackout_kick,if=target.exists&target.enemy
-    - tiger_palm,if=target.exists&target.enemy
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   moh_mplus:
     - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
     - renewing_mist,if=var.renm_capped
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
-    - invoke_chi_ji_the_red_crane,interrupt=true,if=config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.pct>85&!buff.soothing_mist.up
+    - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
+    - invoke_chi_ji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chi_ji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.harmonic_surge_ready&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
@@ -429,15 +351,14 @@ lists:
     - thunder_focus_tea,range_check=none,if=var.tft_ready&(cooldown.invoke_chi_ji_the_red_crane.remains<3)
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    - blackout_kick,if=target.exists&target.enemy
-    - tiger_palm,if=target.exists&target.enemy
-    - mana_tea,range_check=none,if=buff.mana_tea.stack>=config.mana_tea_threshold&mana.pct<config.mana_tea_mana&group.lowest.health.pct>config.heal_threshold&!buff.soothing_mist.up
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   dps_cotc:
     - call_action_list,name=dps_cotc_hotjs,if=var.hotjs_active
     - thunder_focus_tea,range_check=none,if=var.tft_ready
-    - tiger_palm,if=target.exists&target.enemy
-    - blackout_kick,if=target.exists&target.enemy
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
 
   dps_cotc_hotjs:
     - thunder_focus_tea,range_check=none,if=var.tft_ready
@@ -447,10 +368,10 @@ lists:
     - thunder_focus_tea,range_check=none,if=var.tft_capped
     - thunder_focus_tea,range_check=none,if=var.tft_ready&cooldown.thunder_focus_tea.full_recharge_time<3
     - spinning_crane_kick,if=var.dance_of_chiji
-    - tiger_palm,if=target.exists&target.enemy
-    - blackout_kick,if=target.exists&target.enemy
+    - tiger_palm,if=target.exists&target.enemy&target.range<=5
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
 
   dps_moh_aoh:
     - spinning_crane_kick,if=var.dance_of_chiji
-    - tiger_palm,if=target.exists&target.enemy&enemies.combat.8y>=3
-    - blackout_kick,if=target.exists&target.enemy
+    - tiger_palm,if=target.exists&target.enemy&enemies.combat.8y>=3&target.range<=5
+    - blackout_kick,if=target.exists&target.enemy&target.range<=5
