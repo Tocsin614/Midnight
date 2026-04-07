@@ -1,6 +1,6 @@
 # Mistweaver Monk — Midnight 12.0.1 | Spec 270 | Author: Khan
-# Version : 4.9.2  |  Source: Method.gg (Tincell)
-version: "4.9.2"
+# Version : 5.0.0  |  Source: Method.gg (Tincell)
+version: "5.0.0"
 spec: 270
 name: "Mistweaver Monk Method"
 description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
@@ -58,6 +58,12 @@ config:
     min: 1
     max: 100
     default: 35
+
+  use_life_cocoon:
+    section: "Healing"
+    type: checkbox
+    label: "Enable Life Cocoon"
+    value: true
 
   cooldown_threshold:
     section: "Cooldowns"
@@ -157,8 +163,6 @@ lists:
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
-    # LC tank — highest priority
-    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
     - call_action_list,name=defensives
     - paralysis,if=interrupt.target.check
@@ -166,11 +170,14 @@ lists:
     - paralysis.focus,range_check=focus,if=interrupt.focus.check
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
+    - life_cocoon,cycle=members,interrupt=true,if=config.use_life_cocoon&cycle.health.pct<config.life_cocoon_threshold&cycle.range<=40&player.combat&cooldown.life_cocoon.ready
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
+    - call_action_list,name=absorb_heal,if=group.count(cycle.heal_absorb.pct>0)>=1
+    - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
     # RSK: keep on CD at all times (Method rule 1). Procs VV for instant SG next line.
-    - rushing_wind_kick,range_check=none,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy&target.range<=5
-    - rising_sun_kick,range_check=none,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
+    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy&target.range<=5
+    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
     # VV proc: instant SG immediately after RSK, always on lowest
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
@@ -184,6 +191,9 @@ lists:
     - call_action_list,name=dps_moh,if=config.use_dps_filler&var.is_moh&!var.group_injured
 
   out_of_combat:
+    # Absorb burn OOC — heals someone dying to a DoT + heal absorb between pulls.
+    - sheiluns_gift,cycle=members,if=var.has_sheiluns_gift&cycle.heal_absorb.pct>0&cycle.range<=40
+    - vivify,cycle=members,if=!var.has_sheiluns_gift&cycle.heal_absorb.pct>0&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
 
@@ -201,9 +211,6 @@ lists:
 
   # === EMERGENCY HEAL: instant CDs only ===
   emergency_heal:
-    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=healers.lowest,if=group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
-    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
     - revival,interrupt=true,if=!talent.restoral&cooldown.revival.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - restoral,if=talent.restoral&cooldown.restoral.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<40)>=3|(group.tanks.lowest.health.pct<15&cooldown.life_cocoon.down))
     - soothing_mist,cycle=members,if=!buff.soothing_mist.up&group.count(cycle.health.effective.pct<config.heal_threshold)=1&cycle.health.effective.pct<40&cycle.range<=40
@@ -215,9 +222,19 @@ lists:
 
   # === HEALER HEAL: keep co-healers up ===
   healer_heal:
-    - life_cocoon,interrupt=true,target=healers.lowest,if=group.healers.lowest.health.pct<=config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.healers.lowest.range<=40
     - vivify,target=healers.lowest,if=!var.has_sheiluns_gift&group.healers.lowest.health.pct<config.heal_threshold&group.healers.lowest.range<=40&var.vivacious_up
     - sheiluns_gift,target=healers.lowest,if=var.has_sheiluns_gift&group.healers.lowest.health.pct<config.heal_threshold&group.healers.lowest.range<=40&var.vivacious_up
+
+  # === ABSORB HEAL ===
+  # Targets any member with an active heal absorb.
+  # VV instant first, then direct heals, then HoTs to sustain burn.
+  absorb_heal:
+    - sheiluns_gift,cycle=members,interrupt=true,if=var.has_sheiluns_gift&var.vivacious_up&cycle.heal_absorb.pct>0&cycle.range<=40
+    - vivify,cycle=members,interrupt=true,if=!var.has_sheiluns_gift&var.vivacious_up&cycle.heal_absorb.pct>0&cycle.range<=40
+    - enveloping_mist,cycle=members,interrupt=true,if=cycle.heal_absorb.pct>0&!cycle.buff.enveloping_mist.up&cycle.range<=40
+    - sheiluns_gift,cycle=members,interrupt=true,if=var.has_sheiluns_gift&cycle.heal_absorb.pct>0&cycle.range<=40
+    - vivify,cycle=members,interrupt=true,if=!var.has_sheiluns_gift&cycle.heal_absorb.pct>0&cycle.range<=40
+    - renewing_mist,cycle=members,interrupt=true,if=cycle.heal_absorb.pct>0&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
 
   # === COOLDOWNS ===
   cooldowns:
@@ -245,8 +262,6 @@ lists:
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
-    - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
     - blackout_kick,if=target.exists&target.enemy&target.range<=5
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
@@ -271,8 +286,6 @@ lists:
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
-    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
 
   cotc_mplus:
     - call_action_list,name=cotc_mplus_chiji,if=var.chiji_active
@@ -311,8 +324,6 @@ lists:
     - thunder_focus_tea,range_check=none,if=var.tft_ready
     - enveloping_mist,cycle=members,if=var.spiritfont_ready&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    - life_cocoon,interrupt=true,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.tanks.lowest.range<=40
-    - life_cocoon,interrupt=true,target=dps.lowest,if=group.dps.lowest.health.pct<config.life_cocoon_threshold&cooldown.life_cocoon.ready&group.dps.lowest.range<=40
 
   moh_raid:
     - renewing_mist,cycle=members,if=var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40
@@ -330,8 +341,6 @@ lists:
     - spinning_crane_kick,if=enemies.combat.8y>=config.aoe_threshold
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.pct<config.heal_threshold&group.lowest.range<=40
-    - life_cocoon,target=tanks.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.tanks.lowest.health.pct<config.life_cocoon_threshold&group.tanks.lowest.range<=40
-    - life_cocoon,target=dps.lowest,if=var.has_refreshment&cooldown.life_cocoon.ready&group.dps.lowest.health.pct<config.life_cocoon_threshold&group.dps.lowest.range<=40
     - blackout_kick,if=target.exists&target.enemy&target.range<=5
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
