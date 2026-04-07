@@ -1,4 +1,4 @@
-version: "3.1.7"
+version: "3.1.9"
 author: Khan
 spec: 65
 name: Argent Crusade Holy Paladin
@@ -118,10 +118,10 @@ lists:
     - beacon_of_faith,cycle=dps,if=talent.beacon_of_faith.enabled&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range>0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
     - redemption,cycle=members,if=cycle.dead
-    - word_of_glory,cycle=members,if=var.hp_spendable&cycle.health.pct<70
-    - eternal_flame,cycle=members,if=var.hp_spendable&cycle.health.pct<70
-    - holy_shock,cycle=members,if=cycle.health.pct<80&var.holy_shock_ready
-    - flash_of_light,cycle=members,if=cycle.health.pct<55
+    - word_of_glory,cycle=members,if=var.hp_spendable&cycle.health.pct<90
+    - eternal_flame,cycle=members,if=var.hp_spendable&cycle.health.pct<90
+    - holy_shock,cycle=members,if=cycle.heal_absorb.pct>0&var.holy_shock_ready
+    - flash_of_light,cycle=members,if=cycle.heal_absorb.pct>0
   emergency:
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield
     - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.pct<config.lay_on_hands
@@ -177,7 +177,7 @@ lists:
     - light_of_dawn,if=var.empyrean_legacy&group.count(cycle.health.pct<config.word_of_glory)>=2
     - light_of_dawn,if=var.sun_sear_active&var.hp_spendable&group.count(cycle.health.pct<config.word_of_glory)>=2
     - light_of_dawn,if=var.suns_avatar_active&var.hp_spendable&group.count(cycle.health.pct<config.word_of_glory)>=2
-    - light_of_dawn,if=var.hp_capped&group.count(cycle.health.pct<config.word_of_glory)>=2
+    - light_of_dawn,if=var.hp_capped&group.count(cycle.heal_absorb.pct>0)>=2
     - light_of_dawn,if=!var.beacon_of_virtue_active&group.count(cycle.health.pct<config.word_of_glory)>=2&var.hp_spendable&!var.hp_pool_for_toll
     - shield_of_the_righteous,if=var.hp_capped
     - shield_of_the_righteous,if=var.hp_spendable&!var.hp_pool_for_toll
@@ -204,16 +204,16 @@ lists:
     - holy_shock,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
     - eternal_flame,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&var.has_eternal_flame
     - word_of_glory,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&!var.has_eternal_flame
-    - holy_light,cycle=members,if=cycle.heal_absorb.pct>20&mana.pct>30
+    - holy_light,cycle=members,if=cycle.heal_absorb.pct>0&mana.pct>30
     - word_of_glory,cycle=members,if=var.hp_spendable&cycle.health.pct<config.word_of_glory
     - eternal_flame,cycle=members,if=var.hp_spendable&cycle.health.pct<config.word_of_glory
     - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.pct<config.holy_shock
-    - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.pct<85)>=2
+    - light_of_dawn,if=var.hp_spendable&group.count(cycle.heal_absorb.pct>0)>=2
     - flash_of_light,cycle=members,if=var.infusion_of_light&cycle.health.pct<config.flash_of_light
     - holy_light,cycle=members,if=cycle.health.pct<config.word_of_glory&mana.pct>30
     - judgment,if=holy_power.deficit>=1
     - hammer_of_wrath,if=holy_power.deficit>=1
-    - flash_of_light,cycle=members,if=cycle.health.pct<config.flash_of_light
+    - flash_of_light,cycle=members,if=cycle.heal_absorb.pct>0
   proactive_healing:
     - holy_shock,if=var.holy_shock_ready&casting_target.health.pct<80
     - flash_of_light,if=var.infusion_of_light&casting_target.health.pct<60
