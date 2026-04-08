@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing"
+    section: "Healing v2.1.6"
     label: "Mouseover Healing"
     type: checkbox
     default: true
