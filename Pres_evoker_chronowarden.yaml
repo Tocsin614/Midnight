@@ -11,7 +11,7 @@ movement_allowed: true
 # ─────────────────────────── CONFIG ────────────────────────────
 config:
   content_mode:
-    section: "General"
+    section: "General v1.5.9"
     label: "Content Mode"
     type: dropdown
     options:
