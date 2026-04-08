@@ -1,4 +1,4 @@
-version: "3.1.9"
+version: "3.2.0"
 author: Khan
 spec: 65
 name: Argent Crusade Holy Paladin
@@ -8,7 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "v3.1.9"
+    section: "v3.2.0"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -274,6 +274,12 @@ lists:
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
     - return,if=player.channeling
+    # Devouring Rift (440313) — temp mechanic, remove/comment when Simia adds native support
+    # Cleanse the debuff; if cleanse on CD, heal through it with Light of Dawn + Holy Light
+    - cleanse,cycle=members,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=1&cycle.debuff.spell_440313.up&cycle.range<=40
+    - light_of_dawn,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=1&cooldown.cleanse.down
+    - holy_shock,cycle=members,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=1&cycle.debuff.spell_440313.up&cooldown.cleanse.down&cycle.range<=40
+    - holy_light,cycle=members,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=1&cycle.debuff.spell_440313.up&cooldown.cleanse.down&cycle.range<=40
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
