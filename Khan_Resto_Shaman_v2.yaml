@@ -1,4 +1,4 @@
-version: "2.1.7"
+version: "2.1.8"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.1.7"
+    section: "Healing v2.1.8"
     label: "Mouseover Healing"
     type: checkbox
     default: true
@@ -212,6 +212,10 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
+    # Devouring Rift (440313) — temp mechanic line, remove/comment when Simia adds support
+    # 3+ affected: drop totem for AoE cleanse; 1-2 affected: single-target Purify Spirit (8s CD covers up to 2)
+    - poison_cleansing_totem,range_check=none,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=3&!totem.poison_cleansing_totem.up
+    - purify_spirit,cycle=members,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=1&group.count(cycle.debuff.spell_440313.up)<3&cycle.debuff.spell_440313.up&cycle.range<=40
     - wind_shear,if=interrupt.target.check
     - wind_shear.mouseover,if=interrupt.mouseover.check
     - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check&!player.moving.time>3
