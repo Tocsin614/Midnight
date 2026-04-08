@@ -8,6 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
+    section: "v3.1.9"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
