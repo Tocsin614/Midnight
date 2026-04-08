@@ -1,4 +1,4 @@
-version: "2.1.6"
+version: "2.1.7"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.1.6"
+    section: "Healing v2.1.7"
     label: "Mouseover Healing"
     type: checkbox
     default: true
