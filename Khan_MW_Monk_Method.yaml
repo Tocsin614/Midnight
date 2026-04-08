@@ -1,9 +1,9 @@
 # Mistweaver Monk — Midnight 12.0.1 | Spec 270 | Author: Khan
-# Version : 5.0.0  |  Source: Method.gg (Tincell)
-version: "5.0.0"
+# Version : 5.0.1  |  Source: Method.gg (Tincell)
+version: "5.0.1"
 spec: 270
 name: "Mistweaver Monk Method"
-description: "Midnight 12.0 - Method.gg (Tincell): CotC and MoH for Raid and Mythic+"
+description: "Midnight 12.0 - Method.gg v5.0.1"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0.1"
@@ -13,7 +13,7 @@ movement_allowed: true
 # CONFIG
 config:
   rotation_profile:
-    section: "Profile"
+    section: "Profile v5.0.1"
     type: dropdown
     label: "Rotation Profile"
     options:
@@ -170,7 +170,7 @@ lists:
     - paralysis.focus,range_check=focus,if=interrupt.focus.check
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
-    - life_cocoon,cycle=members,interrupt=true,if=config.use_life_cocoon&cycle.health.pct<config.life_cocoon_threshold&cycle.range<=40&player.combat&cooldown.life_cocoon.ready
+    - life_cocoon,target=lowest,interrupt=true,if=config.use_life_cocoon&group.lowest.health.pct<config.life_cocoon_threshold&group.lowest.range<=40&player.combat&cooldown.life_cocoon.ready
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
     - call_action_list,name=absorb_heal,if=group.count(cycle.heal_absorb.pct>0)>=1
