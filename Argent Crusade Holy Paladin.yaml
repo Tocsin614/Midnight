@@ -8,7 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "v3.2.0"
+    section: "v3.2.0 Mythic+ focused"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
