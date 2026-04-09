@@ -1,26 +1,15 @@
-# ============================================================================
-# Holy Paladin — Midnight Season 1  [Wowhead/Herald of the Sun]  v1.6.3
-# ============================================================================
-
-version: "1.6.3"
+version: "1.7.5"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
 author: "Khan"
-date: "2026-03-18"
+date: "2026-04-01"
 patch: "12.0"
-
 movement_allowed: true
-
-# ============================================================================
-# CONFIG
-# ============================================================================
+entry: main
 config:
-
-  # ── Profile ────────────────────────────────────────────────────────────────
-  # Wowhead (HolyClarius) | Herald of the Sun
   content_mode:
-    section: "Profile"
+    section: "Profile v1.7.5 Best @ Raid ok m+ but Argent Crusade better at high keys"
     label: "Content Mode"
     type: dropdown
     options:
@@ -31,8 +20,6 @@ config:
       - label: "Raid (Light of Dawn priority)"
         value: 2
     default: 0
-
-  # ── Emergency ─────────────────────────────────────────────────────────────
   lay_on_hands_hp:
     section: "Emergency"
     label: "Lay on Hands HP %"
@@ -40,7 +27,6 @@ config:
     min: 1
     max: 100
     default: 15
-
   divine_shield_hp:
     section: "Emergency"
     label: "Divine Shield HP %"
@@ -48,7 +34,6 @@ config:
     min: 1
     max: 100
     default: 15
-
   blessing_of_sacrifice_hp:
     section: "Emergency"
     label: "Blessing of Sacrifice HP %"
@@ -56,7 +41,6 @@ config:
     min: 1
     max: 100
     default: 35
-
   bos_self_hp:
     section: "Emergency"
     label: "Blessing of Sacrifice min self HP %"
@@ -64,7 +48,6 @@ config:
     min: 1
     max: 100
     default: 40
-
   emergency_hp:
     section: "Emergency"
     label: "Emergency HP %"
@@ -72,8 +55,6 @@ config:
     min: 1
     max: 100
     default: 35
-
-  # ── Defensives ────────────────────────────────────────────────────────────
   divine_protection_hp:
     section: "Defensives"
     label: "Divine Protection HP %"
@@ -81,7 +62,6 @@ config:
     min: 1
     max: 100
     default: 45
-
   defensive_cd_hp:
     section: "Defensives"
     label: "Defensive CD HP %"
@@ -89,8 +69,6 @@ config:
     min: 1
     max: 100
     default: 55
-
-  # ── Healing ───────────────────────────────────────────────────────────────
   tank_hp:
     section: "Healing"
     label: "Tank Heal HP %"
@@ -98,7 +76,6 @@ config:
     min: 1
     max: 100
     default: 95
-
   tank_critical_hp:
     section: "Healing"
     label: "Tank Critical HP %"
@@ -106,7 +83,6 @@ config:
     min: 1
     max: 100
     default: 55
-
   group_needs_hp:
     section: "Healing"
     label: "Group Needs Healing HP %"
@@ -114,7 +90,6 @@ config:
     min: 1
     max: 100
     default: 90
-
   word_of_glory_hp:
     section: "Healing"
     label: "Word of Glory HP %"
@@ -122,7 +97,6 @@ config:
     min: 1
     max: 100
     default: 95
-
   holy_shock_hp:
     section: "Healing"
     label: "Holy Shock HP %"
@@ -130,7 +104,6 @@ config:
     min: 1
     max: 100
     default: 95
-
   flash_of_light_hp:
     section: "Healing"
     label: "Flash of Light HP %"
@@ -138,7 +111,6 @@ config:
     min: 1
     max: 100
     default: 60
-
   holy_light_hp:
     section: "Healing"
     label: "Holy Light HP %"
@@ -146,7 +118,6 @@ config:
     min: 1
     max: 100
     default: 55
-
   mana_holy_light:
     section: "Healing"
     label: "Holy Light min mana %"
@@ -154,7 +125,6 @@ config:
     min: 1
     max: 100
     default: 30
-
   light_of_dawn_hp:
     section: "Healing"
     label: "Light of Dawn HP %"
@@ -162,7 +132,6 @@ config:
     min: 1
     max: 100
     default: 90
-
   light_of_dawn_injured:
     section: "Healing"
     label: "Light of Dawn min injured count"
@@ -170,16 +139,11 @@ config:
     min: 1
     max: 5
     default: 2
-
-  # ── Beacons ───────────────────────────────────────────────────────────────
-  # Beacon of Light always on tank | Beacon of Faith cycles lowest DPS
   auto_beacon_of_savior:
     section: "Beacons"
     label: "Beacon of the Savior (auto, lowest health)"
     type: checkbox
     default: true
-
-  # ── Cooldowns ─────────────────────────────────────────────────────────────
   avenging_wrath_hp:
     section: "Cooldowns"
     label: "Avenging Wrath HP threshold %"
@@ -187,7 +151,6 @@ config:
     min: 1
     max: 100
     default: 55
-
   avenging_wrath_injured:
     section: "Cooldowns"
     label: "Avenging Wrath min injured count"
@@ -195,7 +158,6 @@ config:
     min: 1
     max: 5
     default: 2
-
   aura_mastery_hp:
     section: "Cooldowns"
     label: "Aura Mastery HP threshold %"
@@ -203,7 +165,6 @@ config:
     min: 1
     max: 100
     default: 45
-
   aura_mastery_injured:
     section: "Cooldowns"
     label: "Aura Mastery min injured count"
@@ -211,7 +172,6 @@ config:
     min: 1
     max: 5
     default: 3
-
   dt_hp_threshold:
     section: "Cooldowns"
     label: "Divine Toll HP %"
@@ -219,7 +179,6 @@ config:
     min: 1
     max: 100
     default: 80
-
   bov_hp:
     section: "Cooldowns"
     label: "Beacon of Virtue HP threshold %"
@@ -227,7 +186,6 @@ config:
     min: 1
     max: 100
     default: 55
-
   beacon_of_virtue_injured:
     section: "Cooldowns"
     label: "Beacon of Virtue min injured count"
@@ -235,20 +193,30 @@ config:
     min: 1
     max: 5
     default: 3
-
-  # ── Utility ───────────────────────────────────────────────────────────────
+  mouseover_spells:
+    section: "Utility"
+    label: "Mouseover Spells"
+    type: multi_select
+    options:
+      - label: "Lay on Hands"
+        value: 0
+      - label: "Word of Glory / Eternal Flame"
+        value: 1
+      - label: "Holy Shock"
+        value: 2
+      - label: "Flash of Light"
+        value: 3
+    default: []
   auto_blessing_of_freedom:
     section: "Utility"
     label: "Auto Blessing of Freedom"
     type: checkbox
     default: true
-
   auto_cleanse:
     section: "Utility"
     label: "Auto Cleanse Debuffs"
     type: checkbox
     default: true
-
   arcane_torrent_mana:
     section: "Utility"
     label: "Arcane Torrent max mana %"
@@ -256,16 +224,8 @@ config:
     min: 1
     max: 100
     default: 55
-
-# ============================================================================
-# VARIABLES
-# ============================================================================
 variables:
-
-  # ── Hero Talent ────────────────────────────────────────────────────────────
   use_herald: talent.herald_of_the_sun
-
-  # ── Talent Flags ───────────────────────────────────────────────────────────
   has_ac:                 talent.avenging_crusader
   has_bov:                talent.beacon_of_virtue
   has_holy_prism:         talent.holy_prism
@@ -276,17 +236,11 @@ variables:
   has_righteous_judgment: talent.righteous_judgment
   has_beacon_of_faith:    talent.beacon_of_faith
   has_tyrs_deliverance:   talent.tyrs_deliverance
-
-  # ── Content Mode ──────────────────────────────────────────────────────────
   is_mplus: config.content_mode=1|(config.content_mode=0&!player.inraid)
   is_raid:  config.content_mode=2|(config.content_mode=0&player.inraid)
-
-  # ── Holy Power ────────────────────────────────────────────────────────────
   hp_capped:     holy_power>=5
   hp_spendable:  holy_power>=3|buff.divine_purpose.up
   hp_deficit_ok: holy_power.deficit>=3
-
-  # ── Buffs ─────────────────────────────────────────────────────────────────
   in_aw:               buff.avenging_wrath.up
   in_ac:               buff.avenging_crusader.up
   in_burst:            buff.avenging_wrath.up|buff.avenging_crusader.up
@@ -299,55 +253,42 @@ variables:
   tyrs_deliverance_up: buff.tyrs_deliverance.up
   rising_sunlight_up:  buff.rising_sunlight.up
   awakening_up:        buff.awakening.up
-
-  # ── Cooldowns ─────────────────────────────────────────────────────────────
   holy_shock_ready:       cooldown.holy_shock.charges>=1
   avenging_wrath_ready:   cooldown.avenging_wrath.ready
   tyrs_deliverance_ready: var.has_tyrs_deliverance&cooldown.tyrs_deliverance.ready
-
-  # ── Group Health ──────────────────────────────────────────────────────────
   tank_needs_healing:   group.tanks.lowest.health.pct<config.tank_hp
   tank_critical:        group.tanks.lowest.health.pct<config.tank_critical_hp
-  group_emergency: group.count(cycle.health.effective.pct<config.emergency_hp)>=1
-  group_critical:  group.count(cycle.health.effective.pct<config.emergency_hp)>=2
+  group_emergency:      group.count(cycle.health.effective.pct<config.emergency_hp)>=1
+  group_critical:       group.count(cycle.health.effective.pct<config.emergency_hp)>=2
   group_needs_healing:  group.count(cycle.health.effective.pct<config.group_needs_hp)>=2
   needs_member_healing: group.lowest.health.pct<config.word_of_glory_hp
-
-  # ── CD Gates ──────────────────────────────────────────────────────────────
+  has_absorbs:          group.count(cycle.heal_absorb.pct>0)>=1
+  mo_friendly_valid:    mouseover.exists&mouseover.alive&mouseover.friendly
+  trinket1_living_silk: trinket_1.id=242393
+  trinket2_living_silk: trinket_2.id=242393
   aw_condition:  group.count(cycle.health.effective.pct<config.avenging_wrath_hp)>=config.avenging_wrath_injured
   am_condition:  (group.count(cycle.health.effective.pct<config.aura_mastery_hp)>=config.aura_mastery_injured)|var.group_critical
   bov_condition: group.count(cycle.health.effective.pct<config.bov_hp)>=config.beacon_of_virtue_injured
-
-
-# ============================================================================
-# LISTS
-# ============================================================================
 lists:
-
-  # Out of combat — aura, beacons, rez, post/pre-pull heals
   out_of_combat:
-    - devotion_aura,range_check=none,if=buff.devotion_aura.down
+    - devotion_aura,if=buff.devotion_aura.down
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
     - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
     - redemption,cycle=members,if=cycle.dead
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
-
-  # Emergency — interrupt=true overrides current cast
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
   emergency:
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield_hp&!debuff.forbearance.up
-    - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
-    - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp&cycle.range<=40
+    - lay_on_hands,cycle=tanks,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp
+    - lay_on_hands,cycle=members,interrupt=true,if=cycle.health.effective.pct<config.lay_on_hands_hp
     - divine_protection,if=health.pct<config.divine_protection_hp&cooldown.divine_protection.ready
-    - blessing_of_sacrifice,cycle=tanks,if=cycle.health.effective.pct<config.blessing_of_sacrifice_hp&health.pct>config.bos_self_hp&cycle.range<=40
+    - blessing_of_sacrifice,cycle=tanks,if=cycle.health.effective.pct<config.blessing_of_sacrifice_hp&health.pct>config.bos_self_hp
     - light_of_dawn,if=var.hp_capped&var.group_emergency&var.is_raid
-    - eternal_flame,target=lowest,if=var.hp_capped&var.group_emergency&var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
-    - word_of_glory,target=lowest,if=var.hp_capped&var.group_emergency&!var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
-
-  # Interrupts — uses dev interrupt.X.check syntax
+    - eternal_flame,target=lowest,if=var.hp_capped&var.group_emergency&var.has_eternal_flame&var.is_mplus
+    - word_of_glory,target=lowest,if=var.hp_capped&var.group_emergency&!var.has_eternal_flame&var.is_mplus
   interrupts:
     - hammer_of_justice,if=interrupt.target.check
     - hammer_of_justice.focus,if=interrupt.focus.check
@@ -357,147 +298,154 @@ lists:
     - war_stomp,if=interrupt.stun.aoe.check
     - bull_rush,if=interrupt.stun.aoe.check
     - arcane_pulse,if=interrupt.stun.aoe.check
-
-  # Utility — dispels and freedom
   utility:
-    - cleanse,cycle=members,if=config.auto_cleanse&cycle.dispelable.cleanse&cycle.range<=40
-    - blessing_of_freedom.player,range_check=none,if=player.debuff.1269286.up.any
-    - blessing_of_freedom,cycle=members,if=cycle.debuff.1269286.up.any&cycle.range<=40
+    - cleanse,cycle=members,if=config.auto_cleanse&cycle.dispelable.list.cleanse
     - blessing_of_freedom.player,if=config.auto_blessing_of_freedom&(player.rooted|player.has_magic_debuff)
-    - blessing_of_freedom,cycle=members,if=config.auto_blessing_of_freedom&(cycle.debuff.snare.up|cycle.debuff.root.up)&cycle.range<=40
-
-  # Beacon maintenance
+    - blessing_of_freedom,cycle=members,if=config.auto_blessing_of_freedom&(cycle.debuff.snare.up|cycle.debuff.root.up)
   beacon_maintenance:
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
     - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
     - beacon_of_the_savior,if=config.auto_beacon_of_savior&buff.beacon_of_the_savior.down
-
-  # Major cooldowns — all need-based, never fire on a full-health group
   major_cooldowns:
     - avenging_wrath,if=!var.has_ac&var.avenging_wrath_ready&var.aw_condition
     - avenging_crusader,if=var.has_ac&cooldown.avenging_crusader.ready&!var.in_ac&var.aw_condition
     - aura_mastery,if=cooldown.aura_mastery.ready&var.am_condition
-    # DT — inline only (variable chain fails); interrupt=true so casts don't delay it
     - divine_toll,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.pct<config.dt_hp_threshold&var.use_herald&(active_enemies>=2|!var.group_needs_healing)&target.enemy
-    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.pct<config.dt_hp_threshold&group.lowest.range<=40
+    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.pct<config.dt_hp_threshold
     - holy_prism,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&target.enemy
-    - holy_prism,target=lowest,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&!target.enemy&group.lowest.range<=40
-    - beacon_of_virtue,target=lowest,if=var.has_bov&cooldown.beacon_of_virtue.ready&var.bov_condition&var.hp_spendable&group.lowest.range<=40
+    - holy_prism,target=lowest,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&!target.enemy
+    - beacon_of_virtue,target=lowest,if=var.has_bov&cooldown.beacon_of_virtue.ready&var.bov_condition&var.hp_spendable
     - tyrs_deliverance,if=var.tyrs_deliverance_ready&var.group_needs_healing
-
-  # Tank healing — priority path before general rotation
   tank_healing:
     - light_of_dawn,if=var.hp_capped&var.tank_critical&var.is_raid
-    - eternal_flame,target=tanks.lowest,if=var.hp_capped&var.has_eternal_flame&var.tank_critical&group.tanks.lowest.range<=40
-    - word_of_glory,target=tanks.lowest,if=var.hp_capped&!var.has_eternal_flame&var.tank_critical&group.tanks.lowest.range<=40
-    - holy_light,target=tanks.lowest,if=var.hod_proc&group.tanks.lowest.range<=40
-    - flash_of_light,target=tanks.lowest,if=var.iof_proc&var.tank_needs_healing&group.tanks.lowest.range<=40
-    - holy_shock,target=tanks.lowest,if=var.holy_shock_ready&var.tank_needs_healing&group.tanks.lowest.range<=40
-    - eternal_flame,target=tanks.lowest,if=var.hp_spendable&var.has_eternal_flame&var.tank_needs_healing&group.tanks.lowest.range<=40
-    - word_of_glory,target=tanks.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.tank_needs_healing&group.tanks.lowest.range<=40
-    - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.flash_of_light_hp&group.tanks.lowest.range<=40
-
-  # Virtue window — active while Beacon of Virtue is up
+    - eternal_flame,target=tanks.lowest,if=var.hp_capped&var.has_eternal_flame&var.tank_critical
+    - word_of_glory,target=tanks.lowest,if=var.hp_capped&!var.has_eternal_flame&var.tank_critical
+    - holy_light,target=tanks.lowest,if=var.hod_proc
+    - flash_of_light,target=tanks.lowest,if=var.iof_proc&var.tank_needs_healing
+    - holy_shock,target=tanks.lowest,if=var.holy_shock_ready&var.tank_needs_healing
+    - eternal_flame,target=tanks.lowest,if=var.hp_spendable&var.has_eternal_flame&var.tank_needs_healing
+    - word_of_glory,target=tanks.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.tank_needs_healing
+    - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.flash_of_light_hp
   virtue_window:
     - light_of_dawn,if=var.hp_capped&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - light_of_dawn,if=var.dp_proc&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
     - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - judgment,if=var.hp_deficit_ok&target.enemy
-
-  # Avenging Crusader — Judgment and CS convert to healing; maximize both
   avenging_crusader_rotation:
     - light_of_dawn,if=var.hp_capped&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_capped&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.hp_capped&!var.group_needs_healing
     - light_of_dawn,if=var.dp_proc&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
-    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.dp_proc&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.dp_proc&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.dp_proc&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=var.in_ac&!var.in_aw&cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&holy_power.deficit>=1
     - consecration,if=var.has_righteous_judgment&!buff.consecration.up
-    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp&cycle.range<=40
+    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp
     - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
-
-  # Moving — instant-only rotation
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
   moving:
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - light_of_dawn,if=var.hp_spendable&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&target.enemy&!var.group_needs_healing
-
-  # Preemptive heal while enemy is casting
   preemptive_healing:
     - holy_shock,if=var.holy_shock_ready&casting_target.health.pct<config.holy_shock_hp
     - flash_of_light,if=var.iof_proc&casting_target.health.pct<config.flash_of_light_hp
-
-  # Trinkets — framework sync handles burst window and CD checks
+  mouseover_friendly:
+    - intercession.mouseover,if=mouseover.dead&health.pct>20
+    - lay_on_hands.mouseover,if=config.mouseover_spells.has(0)&mouseover.health.pct<config.lay_on_hands_hp
+    - eternal_flame.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<config.word_of_glory_hp&var.hp_spendable&var.has_eternal_flame
+    - word_of_glory.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<config.word_of_glory_hp&var.hp_spendable&!var.has_eternal_flame
+    - holy_shock.mouseover,if=config.mouseover_spells.has(2)&mouseover.health.effective.pct<config.holy_shock_hp&var.holy_shock_ready
+    - flash_of_light.mouseover,if=config.mouseover_spells.has(3)&mouseover.health.effective.pct<config.flash_of_light_hp
   trinkets:
-    - trinket_1,if=trinket_1.sync
-    - trinket_2,if=trinket_2.sync
-
-  # Spenders — Wowhead: EL proc → HP cap → DP proc → 3+ HP → SotR DPS
+    - trinket_1,if=var.trinket1_living_silk&trinket_1.ready&(var.in_burst|var.group_emergency)
+    - trinket_2,if=var.trinket2_living_silk&trinket_2.ready&(var.in_burst|var.group_emergency)
+    - trinket_1,if=!var.trinket1_living_silk&trinket_1.ready&trinket_1.sync
+    - trinket_2,if=!var.trinket2_living_silk&trinket_2.ready&trinket_2.sync
+    - trinket_1,if=!var.trinket1_living_silk&trinket_1.ready&var.group_emergency
+    - trinket_2,if=!var.trinket2_living_silk&trinket_2.ready&var.group_emergency
   spenders:
-    - eternal_flame,target=lowest,if=var.el_proc&var.has_eternal_flame&group.lowest.range<=40
-    - word_of_glory,target=lowest,if=var.el_proc&!var.has_eternal_flame&group.lowest.range<=40
+    - eternal_flame,target=lowest,if=var.el_proc&var.has_eternal_flame
+    - word_of_glory,target=lowest,if=var.el_proc&!var.has_eternal_flame
     - light_of_dawn,if=var.hp_capped&var.is_raid
-    - eternal_flame,target=lowest,if=var.hp_capped&var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
-    - word_of_glory,target=lowest,if=var.hp_capped&!var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
+    - eternal_flame,target=lowest,if=var.hp_capped&var.has_eternal_flame&var.is_mplus
+    - word_of_glory,target=lowest,if=var.hp_capped&!var.has_eternal_flame&var.is_mplus
     - light_of_dawn,if=var.dp_proc&var.is_raid
-    - eternal_flame,target=lowest,if=var.dp_proc&var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
-    - word_of_glory,target=lowest,if=var.dp_proc&!var.has_eternal_flame&var.is_mplus&group.lowest.range<=40
+    - eternal_flame,target=lowest,if=var.dp_proc&var.has_eternal_flame&var.is_mplus
+    - word_of_glory,target=lowest,if=var.dp_proc&!var.has_eternal_flame&var.is_mplus
     - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured&!var.in_bov
-    - eternal_flame,target=lowest,if=var.hp_spendable&var.has_eternal_flame&var.is_mplus&var.needs_member_healing&group.lowest.range<=40
-    - word_of_glory,target=lowest,if=var.hp_spendable&!var.has_eternal_flame&var.is_mplus&var.needs_member_healing&group.lowest.range<=40
+    - eternal_flame,target=lowest,if=var.hp_spendable&var.has_eternal_flame&var.is_mplus&var.needs_member_healing
+    - word_of_glory,target=lowest,if=var.hp_spendable&!var.has_eternal_flame&var.is_mplus&var.needs_member_healing
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
-
-  # Generators — Holy Shock on cooldown above all else
   generators:
     - consecration,if=var.has_righteous_judgment&!buff.consecration.up
-    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp&cycle.range<=40
-    - holy_shock,cycle=members,if=var.holy_shock_ready&var.tyrs_deliverance_up&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - holy_shock,cycle=members,if=var.holy_shock_ready&var.rising_sunlight_up&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
+    - holy_light,cycle=members,if=var.hod_proc&cycle.health.effective.pct<config.holy_light_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&var.tyrs_deliverance_up&cycle.health.effective.pct<config.holy_shock_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&var.rising_sunlight_up&cycle.health.effective.pct<config.holy_shock_hp
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
     - holy_shock,if=var.holy_shock_ready&target.enemy&!var.group_needs_healing
     - hammer_of_wrath,override=judgment,if=var.in_burst&holy_power.deficit>=1
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
     - judgment,if=var.iof_proc&!var.group_needs_healing&target.enemy
-    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
-
-  # Member healing — cycles group when anyone is below word_of_glory_hp
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
   member_healing:
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp&cycle.range<=40
+    - holy_shock,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
+    - eternal_flame,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&var.has_eternal_flame
+    - word_of_glory,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&!var.has_eternal_flame
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp&cycle.range<=40
-    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
-    - holy_light,cycle=members,if=cycle.health.effective.pct<config.holy_light_hp&mana.pct>config.mana_holy_light&cycle.range<=40
-    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp&cycle.range<=40
-
-  # Racial — Arcane Torrent (Blood Elf mana return only)
-  racial:
+    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
+    - holy_light,cycle=members,if=cycle.health.effective.pct<config.holy_light_hp&mana.pct>config.mana_holy_light
+    - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
+  racial_defensive:
+    - stoneform,if=player.dispelable.list.stoneform
+    - fireblood,if=player.dispelable.list.fireblood
+    - will_of_the_forsaken,if=player.feared|player.charmed
+    - escape_artist,if=player.rooted
+    - will_to_survive,if=player.stunned
+    - gift_of_the_naaru,if=health.pct<35
+    - regeneratin,if=health.pct<35&!player.combat
+    - stoneform,if=health.pct<50
+    - fireblood,if=health.pct<50
+  racial_offensive:
+    - berserking,if=var.in_burst
+    - blood_fury,if=var.in_burst
+    - ancestral_call,if=var.in_burst
+    - fireblood,if=var.in_burst&!player.dispelable.list.fireblood
+  racial_cc:
+    - war_stomp,if=interrupt.stun.aoe.check
+    - quaking_palm,if=target.casting.interruptible
+    - haymaker,if=target.casting.interruptible
+    - bull_rush,if=target.casting.interruptible
+    - arcane_pulse,if=enemies.8y.count>=3
+  racial_utility:
     - arcane_torrent,if=mana.pct<=config.arcane_torrent_mana
-
-  # Main
+    - gift_of_the_naaru,target=lowest,if=group.lowest.health.pct<60
+    - bag_of_tricks,target=lowest,if=group.lowest.health.pct<60
+    - shadowmeld,if=target.threat>=3&!player.casting
   main:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
@@ -509,16 +457,20 @@ lists:
     - call_action_list,name=emergency
     - call_action_list,name=utility
     - call_action_list,name=major_cooldowns
+    - call_action_list,name=racial_defensive
     - call_action_list,name=interrupts
+    - call_action_list,name=racial_cc
     - return,if=player.cc
     - call_action_list,name=beacon_maintenance
     - call_action_list,name=virtue_window,if=var.in_bov
     - call_action_list,name=avenging_crusader_rotation,if=var.in_ac
     - call_action_list,name=moving,if=player.moving
     - call_action_list,name=preemptive_healing,if=target.casting&casting_target.health.pct<config.word_of_glory_hp
-    - call_action_list,name=racial
+    - call_action_list,name=mouseover_friendly,if=var.mo_friendly_valid&!player.casting
+    - call_action_list,name=racial_offensive,if=var.in_burst
+    - call_action_list,name=racial_utility
     - call_action_list,name=trinkets
     - call_action_list,name=tank_healing,if=var.tank_needs_healing
     - call_action_list,name=spenders
-    - call_action_list,name=member_healing,if=var.needs_member_healing
+    - call_action_list,name=member_healing,if=var.needs_member_healing|var.has_absorbs
     - call_action_list,name=generators
