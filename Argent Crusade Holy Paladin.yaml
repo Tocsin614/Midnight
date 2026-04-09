@@ -1,4 +1,4 @@
-version: "3.2.0"
+version: "3.2.1"
 author: Khan
 spec: 65
 name: Argent Crusade Holy Paladin
@@ -8,7 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "v3.2.0 Mythic+ focused"
+    section: "v3.2.1 Mythic+ focused"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -108,11 +108,6 @@ variables:
   tyrs_deliverance_active: buff.tyrs_deliverance.up
   tyrs_deliverance_ready: talent.tyrs_deliverance.enabled&cooldown.tyrs_deliverance.ready
 lists:
-  interrupts:
-    - hammer_of_justice,if=interrupt.target.check
-    - hammer_of_justice.mouseover,if=interrupt.mouseover.check
-    - hammer_of_justice.focus,if=interrupt.focus.check
-    - blinding_light,if=interrupt.stun.aoe.check
   out_of_combat:
     - devotion_aura,if=buff.devotion_aura.down
     - beacon_of_light,cycle=tanks,if=!talent.beacon_of_virtue.enabled&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range>0&cycle.range<=40
@@ -269,6 +264,10 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target
+    - hammer_of_justice,if=interrupt.target.check
+    - hammer_of_justice.mouseover,if=interrupt.mouseover.check
+    - hammer_of_justice.focus,if=interrupt.focus.check
+    - blinding_light,if=interrupt.stun.aoe.check
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
@@ -283,7 +282,6 @@ lists:
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
-    - call_action_list,name=interrupts
     - call_action_list,name=racial_cc
     - return,if=player.cc
     - call_action_list,name=beacons
