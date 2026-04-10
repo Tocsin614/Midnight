@@ -212,11 +212,6 @@ config:
     label: "Auto Blessing of Freedom"
     type: checkbox
     default: true
-  auto_cleanse:
-    section: "Utility"
-    label: "Auto Cleanse Debuffs"
-    type: checkbox
-    default: true
   arcane_torrent_mana:
     section: "Utility"
     label: "Arcane Torrent max mana %"
@@ -298,10 +293,6 @@ lists:
     - war_stomp,if=interrupt.stun.aoe.check
     - bull_rush,if=interrupt.stun.aoe.check
     - arcane_pulse,if=interrupt.stun.aoe.check
-  utility:
-    - cleanse,cycle=members,if=config.auto_cleanse&cycle.dispelable.list.cleanse
-    - blessing_of_freedom.player,if=config.auto_blessing_of_freedom&(player.rooted|player.has_magic_debuff)
-    - blessing_of_freedom,cycle=members,if=config.auto_blessing_of_freedom&(cycle.debuff.snare.up|cycle.debuff.root.up)
   beacon_maintenance:
     - beacon_of_light,cycle=tanks,if=!var.has_bov&group.count(cycle.buff.beacon_of_light.up)=0&cycle.range<=40
     - beacon_of_faith,cycle=dps,if=var.has_beacon_of_faith&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range<=40
@@ -455,7 +446,6 @@ lists:
     - return,if=!player.combat&config.auto_combat.has(0)
     - return,if=player.channeling
     - call_action_list,name=emergency
-    - call_action_list,name=utility
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
     - call_action_list,name=interrupts
