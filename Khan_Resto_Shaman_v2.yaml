@@ -1,4 +1,4 @@
-version: "2.1.8"
+version: "2.1.9"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.1.8"
+    section: "Healing v2.1.9"
     label: "Mouseover Healing"
     type: checkbox
     default: true
@@ -142,7 +142,7 @@ lists:
   totem_maintenance:
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
     - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
-    - healing_stream_totem,range_check=none,if=!var.healing_stream_up&!player.moving.time>3.time>3
+    - healing_stream_totem,range_check=none,if=!var.healing_stream_up&!player.moving.time>3
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
   member_healing:
