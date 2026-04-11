@@ -1,4 +1,4 @@
-version: "2.2.1"
+version: "2.3.0"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.2.1"
+    section: "Healing v2.3.0"
     label: "Mouseover Healing"
     type: checkbox
     default: true
@@ -17,35 +17,35 @@ config:
     section: "Healing"
     label: "Riptide HP %"
     type: slider
-    min: 70
+    min: 1
     max: 100
-    default: 92
+    default: 98
   chain_heal_threshold:
     section: "Healing"
     label: "Chain Heal HP %"
     type: slider
-    min: 60
-    max: 95
-    default: 85
+    min: 1
+    max: 100
+    default: 93
   chain_heal_members:
     section: "Healing"
     label: "Chain Heal - Min Injured Members"
     type: slider
-    min: 2
+    min: 1
     max: 5
     default: 3
   healing_wave_threshold:
     section: "Healing"
     label: "Healing Wave HP %"
     type: slider
-    min: 50
-    max: 95
-    default: 90
+    min: 1
+    max: 100
+    default: 94
   healing_rain_members:
     section: "Healing"
     label: "Healing Rain - Min Injured Members"
     type: slider
-    min: 2
+    min: 1
     max: 5
     default: 3
   healing_tide_members:
@@ -55,19 +55,40 @@ config:
     min: 1
     max: 5
     default: 3
+  healing_tide_hp:
+    section: "Cooldowns"
+    label: "Healing Tide HP %"
+    type: slider
+    min: 1
+    max: 100
+    default: 70
+  ascendance_hp:
+    section: "Cooldowns"
+    label: "Ascendance HP %"
+    type: slider
+    min: 1
+    max: 100
+    default: 75
+  ascendance_members:
+    section: "Cooldowns"
+    label: "Ascendance - Min Injured Members"
+    type: slider
+    min: 1
+    max: 8
+    default: 2
   spirit_link_threshold:
     section: "Cooldowns"
     label: "Spirit Link HP %"
     type: slider
-    min: 20
-    max: 50
+    min: 1
+    max: 100
     default: 40
   astral_shift_hp:
     section: "Defensives"
     label: "Astral Shift HP %"
     type: slider
-    min: 10
-    max: 60
+    min: 1
+    max: 100
     default: 35
   earth_shield_tanks:
     section: "Healing"
@@ -83,7 +104,7 @@ config:
     section: "Damage"
     label: "DPS Filler - Group HP % Minimum"
     type: slider
-    min: 50
+    min: 1
     max: 100
     default: 85
 variables:
@@ -100,9 +121,9 @@ variables:
   surging_totem_expires_soon: totem.surging_totem.up&totem.surging_totem.remains<8
   stormstream_up: totem.stormstream_totem.up
   healing_stream_up: totem.healing_stream_totem.up
-  healing_tide_ready: cooldown.healing_tide_totem.ready&group.count(cycle.health.pct<config.healing_wave_threshold)>=config.healing_tide_members
+  healing_tide_ready: cooldown.healing_tide_totem.ready&group.count(cycle.health.pct<config.healing_tide_hp)>=config.healing_tide_members
   spirit_link_ready: cooldown.spirit_link_totem.ready&group.lowest.health.pct<config.spirit_link_threshold
-  ascendance_ready: cooldown.ascendance.ready&talent.ascendance.enabled&var.group_needs_healing
+  ascendance_ready: cooldown.ascendance.ready&talent.ascendance.enabled&group.count(cycle.health.pct<config.ascendance_hp)>=config.ascendance_members
   ancestors_ready: cooldown.call_of_the_ancestors.ready&talent.call_of_the_ancestors.enabled&var.group_needs_healing
   riptide_overcap: cooldown.riptide.charges>=2
   mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly
@@ -141,7 +162,7 @@ lists:
     - wind_rush_totem,range_check=none,if=talent.wind_rush_totem.enabled&cooldown.wind_rush_totem.ready&player.moving.time>3
   totem_maintenance:
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
-    - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
+    - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready&player.standing.time>3
     - healing_stream_totem,range_check=none,if=!var.healing_stream_up&player.standing.time>3
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
@@ -155,7 +176,7 @@ lists:
     - healing_wave,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
     - natures_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.natures_swiftness.enabled&!var.natures_swiftness_up&cooldown.natures_swiftness.ready
     - ancestral_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&cooldown.ancestral_swiftness.ready
-    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready
+    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.pct<config.healing_wave_threshold
     - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.pct<config.riptide_threshold
     - riptide,target=lowest,if=var.riptide_overcap
     - healing_rain,range_check=none,if=talent.healing_rain.enabled&cooldown.healing_rain.ready&group.count(cycle.health.pct<90)>=config.healing_rain_members
@@ -178,9 +199,8 @@ lists:
     - spiritwalkers_grace,interrupt=true,range_check=none,if=!buff.spiritwalkers_grace.up&var.needs_member_healing
     - riptide,target=lowest,if=group.lowest.health.pct<config.riptide_threshold
     - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.pct<config.riptide_threshold
-    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready
+    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.pct<config.healing_wave_threshold
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
-    - stormstream_totem,range_check=none,if=!var.stormstream_up&cooldown.stormstream_totem.ready
     - lava_burst,if=var.lava_surge_up
   dps_filler:
     - flame_shock,if=!dot.flame_shock.ticking&target.valid&target.enemy
@@ -212,6 +232,7 @@ lists:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
+    - call_action_list,name=out_of_combat,if=!player.combat
     # Devouring Rift (440313) — temp mechanic line, remove/comment when Simia adds support
     # 3+ affected: drop totem for AoE cleanse; 1-2 affected: single-target Purify Spirit (8s CD covers up to 2)
     - poison_cleansing_totem,range_check=none,interrupt=true,if=group.count(cycle.debuff.spell_440313.up)>=3&!totem.poison_cleansing_totem.up
@@ -220,9 +241,9 @@ lists:
     - wind_shear.mouseover,if=interrupt.mouseover.check
     - capacitor_totem,range_check=none,if=interrupt.stun.aoe.check&player.standing.time>3
     - call_action_list,name=auto_heal,if=player.combat
-    - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
+    - return,if=!target.valid&config.auto_combat.has(0)
     - return,if=player.channeling
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
