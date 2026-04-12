@@ -1,4 +1,4 @@
-version: "2.3.0"
+version: "2.3.1"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,7 +9,7 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.3.0"
+    section: "Healing v2.3.1"
     label: "Mouseover Healing"
     type: checkbox
     default: true
@@ -41,6 +41,11 @@ config:
     min: 1
     max: 100
     default: 94
+  block_healing_wave:
+    section: "Healing"
+    label: "Jecht Healing Wave Raid Block"
+    type: checkbox
+    default: false
   healing_rain_members:
     section: "Healing"
     label: "Healing Rain - Min Injured Members"
@@ -139,7 +144,7 @@ lists:
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
     - riptide,cycle=members,if=cycle.buff.riptide.down
-    - healing_wave,cycle=members,if=cycle.health.pct<70
+    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.pct<70
     - chain_heal,cycle=members,if=cycle.health.pct<55
   emergency:
     - astral_shift,range_check=none,if=player.health.pct<config.astral_shift_hp&!buff.astral_shift.up
@@ -169,11 +174,11 @@ lists:
   member_healing:
     - unleash_life.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=100&cooldown.unleash_life.ready
     - riptide.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down
-    - healing_wave.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=100
+    - healing_wave.focus_mouseover,interrupt=true,range_check=mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.pct<=100
     - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=config.chain_heal_threshold
     - riptide,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0&var.riptide_overcap
     - chain_heal,cycle=members,if=cycle.heal_absorb.pct>0&group.count(cycle.heal_absorb.pct>0)>=2
-    - healing_wave,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
+    - healing_wave,interrupt=true,cycle=members,if=!config.block_healing_wave&cycle.heal_absorb.pct>0
     - natures_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.natures_swiftness.enabled&!var.natures_swiftness_up&cooldown.natures_swiftness.ready
     - ancestral_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&cooldown.ancestral_swiftness.ready
     - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.pct<config.healing_wave_threshold
@@ -187,13 +192,13 @@ lists:
     - chain_heal,target=lowest,if=group.count(cycle.health.pct<config.chain_heal_threshold)>=config.chain_heal_members
     - spouting_spirits,interrupt=true,range_check=none,if=talent.spouting_spirits.enabled&cooldown.spouting_spirits.ready&var.group_needs_healing
     - restorative_mists,cycle=members,if=talent.restorative_mists.enabled&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=var.unleash_life_up&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=cycle.health.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&var.unleash_life_up&cycle.health.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.pct<config.healing_wave_threshold
   mouseover_friendly:
     - riptide.mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down&cooldown.riptide.charges>=1
     - chain_heal.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.chain_heal_threshold
-    - healing_wave.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold
+    - healing_wave.mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold
     - unleash_life.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold&cooldown.unleash_life.ready
   moving:
     - spiritwalkers_grace,interrupt=true,range_check=none,if=!buff.spiritwalkers_grace.up&var.needs_member_healing
