@@ -1,4 +1,4 @@
-version: "2.3.1"
+version: "2.4.0"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
@@ -9,10 +9,17 @@ description: |
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.3.1"
+    section: "Healing v2.4.0"
     label: "Mouseover Healing"
     type: checkbox
     default: true
+  member_heal_threshold:
+    section: "Healing"
+    label: "Member Effective HP %"
+    type: slider
+    min: 1
+    max: 100
+    default: 85
   riptide_threshold:
     section: "Healing"
     label: "Riptide HP %"
@@ -113,11 +120,10 @@ config:
     max: 100
     default: 85
 variables:
-  has_absorbs: group.count(cycle.heal_absorb.pct>0)>=1
-  needs_member_healing: group.lowest.health.pct<config.riptide_threshold
-  group_needs_healing: group.count(cycle.health.pct<85)>=2
-  group_emergency: group.count(cycle.health.pct<50)>=2
-  group_critical: group.count(cycle.health.pct<30)>=1
+  needs_member_healing: group.lowest.health.effective.pct<config.member_heal_threshold
+  group_needs_healing: group.count(cycle.health.effective.pct<config.chain_heal_threshold)>=config.chain_heal_members
+  group_emergency: group.count(cycle.health.effective.pct<60)>=2
+  group_critical: group.count(cycle.health.effective.pct<45)>=1
   unleash_life_up: buff.unleash_life.up
   natures_swiftness_up: buff.natures_swiftness.up
   ancestral_swiftness_up: buff.ancestral_swiftness.up
@@ -126,9 +132,9 @@ variables:
   surging_totem_expires_soon: totem.surging_totem.up&totem.surging_totem.remains<8
   stormstream_up: totem.stormstream_totem.up
   healing_stream_up: totem.healing_stream_totem.up
-  healing_tide_ready: cooldown.healing_tide_totem.ready&group.count(cycle.health.pct<config.healing_tide_hp)>=config.healing_tide_members
-  spirit_link_ready: cooldown.spirit_link_totem.ready&group.lowest.health.pct<config.spirit_link_threshold
-  ascendance_ready: cooldown.ascendance.ready&talent.ascendance.enabled&group.count(cycle.health.pct<config.ascendance_hp)>=config.ascendance_members
+  healing_tide_ready: cooldown.healing_tide_totem.ready&group.count(cycle.health.effective.pct<config.healing_tide_hp)>=config.healing_tide_members
+  spirit_link_ready: cooldown.spirit_link_totem.ready&group.lowest.health.effective.pct<config.spirit_link_threshold
+  ascendance_ready: cooldown.ascendance.ready&talent.ascendance.enabled&group.count(cycle.health.effective.pct<config.ascendance_hp)>=config.ascendance_members
   ancestors_ready: cooldown.call_of_the_ancestors.ready&talent.call_of_the_ancestors.enabled&var.group_needs_healing
   riptide_overcap: cooldown.riptide.charges>=2
   mo_friendly_valid: mouseover.exists&mouseover.alive&mouseover.friendly
@@ -144,17 +150,17 @@ lists:
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
     - riptide,cycle=members,if=cycle.buff.riptide.down
-    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.pct<70
-    - chain_heal,cycle=members,if=cycle.health.pct<55
+    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.effective.pct<70
+    - chain_heal,cycle=members,if=cycle.health.effective.pct<55
   emergency:
     - astral_shift,range_check=none,if=player.health.pct<config.astral_shift_hp&!buff.astral_shift.up
     - earth_elemental,range_check=none,if=talent.earth_elemental.enabled&player.health.pct<config.astral_shift_hp&!cooldown.astral_shift.ready
     - spirit_link_totem,interrupt=true,range_check=none,if=var.group_critical&var.spirit_link_ready&player.standing.time>3
-    - ancestral_swiftness,interrupt=true,range_check=none,if=talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
-    - natures_swiftness,interrupt=true,range_check=none,if=talent.natures_swiftness.enabled&!var.natures_swiftness_up&group.lowest.health.pct<config.astral_shift_hp
-    - healing_surge,interrupt=true,cycle=members,if=(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.astral_shift_hp
-    - healing_surge,interrupt=true,cycle=members,if=cycle.health.pct<25
-    - riptide,interrupt=true,cycle=members,if=cycle.health.pct<35&var.riptide_overcap
+    - ancestral_swiftness,interrupt=true,range_check=none,if=talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&group.lowest.health.effective.pct<config.astral_shift_hp
+    - natures_swiftness,interrupt=true,range_check=none,if=talent.natures_swiftness.enabled&!var.natures_swiftness_up&group.lowest.health.effective.pct<config.astral_shift_hp
+    - healing_surge,interrupt=true,cycle=members,if=(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.effective.pct<config.astral_shift_hp
+    - healing_surge,interrupt=true,cycle=members,if=cycle.health.effective.pct<25
+    - riptide,interrupt=true,cycle=members,if=cycle.health.effective.pct<35&var.riptide_overcap
   major_cooldowns:
     - bloodlust,range_check=none,if=var.group_emergency&cooldown.bloodlust.ready
     - healing_tide_totem,interrupt=true,range_check=none,if=var.healing_tide_ready
@@ -172,39 +178,36 @@ lists:
     - earth_shield,cycle=tanks,if=talent.earth_shield.enabled&config.earth_shield_tanks&cycle.buff.earth_shield.down&cycle.range>0&cycle.range<=40
     - earth_shield.player,range_check=none,if=talent.earth_shield.enabled&talent.elemental_orbit.enabled&!buff.earth_shield.up
   member_healing:
-    - unleash_life.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=100&cooldown.unleash_life.ready
+    - unleash_life.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<=100&cooldown.unleash_life.ready
     - riptide.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down
-    - healing_wave.focus_mouseover,interrupt=true,range_check=mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.pct<=100
-    - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.health.pct<=config.chain_heal_threshold
-    - riptide,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0&var.riptide_overcap
-    - chain_heal,cycle=members,if=cycle.heal_absorb.pct>0&group.count(cycle.heal_absorb.pct>0)>=2
-    - healing_wave,interrupt=true,cycle=members,if=!config.block_healing_wave&cycle.heal_absorb.pct>0
+    - healing_wave.focus_mouseover,interrupt=true,range_check=mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.effective.pct<=100
+    - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<=config.chain_heal_threshold
     - natures_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.natures_swiftness.enabled&!var.natures_swiftness_up&cooldown.natures_swiftness.ready
     - ancestral_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&cooldown.ancestral_swiftness.ready
-    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.pct<config.healing_wave_threshold
-    - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.pct<config.riptide_threshold
+    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.effective.pct<config.healing_wave_threshold
+    - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.effective.pct<config.riptide_threshold
     - riptide,target=lowest,if=var.riptide_overcap
-    - healing_rain,range_check=none,if=talent.healing_rain.enabled&cooldown.healing_rain.ready&group.count(cycle.health.pct<90)>=config.healing_rain_members
+    - healing_rain,range_check=none,if=talent.healing_rain.enabled&cooldown.healing_rain.ready&group.count(cycle.health.effective.pct<90)>=config.healing_rain_members
     - downpour,range_check=none,if=talent.downpour.enabled&cooldown.downpour.ready&var.surging_totem_expires_soon
     - downpour,range_check=none,if=talent.downpour.enabled&cooldown.downpour.ready&var.group_needs_healing
     - primordial_wave,target=lowest,if=talent.primordial_wave.enabled&cooldown.primordial_wave.ready
-    - chain_heal,target=lowest,if=group.count(cycle.health.pct<config.chain_heal_threshold)>=config.chain_heal_members&var.unleash_life_up
-    - chain_heal,target=lowest,if=group.count(cycle.health.pct<config.chain_heal_threshold)>=config.chain_heal_members
+    - chain_heal,target=lowest,if=group.count(cycle.health.effective.pct<config.chain_heal_threshold)>=config.chain_heal_members&var.unleash_life_up
+    - chain_heal,target=lowest,if=group.count(cycle.health.effective.pct<config.chain_heal_threshold)>=config.chain_heal_members
     - spouting_spirits,interrupt=true,range_check=none,if=talent.spouting_spirits.enabled&cooldown.spouting_spirits.ready&var.group_needs_healing
-    - restorative_mists,cycle=members,if=talent.restorative_mists.enabled&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=!config.block_healing_wave&(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=!config.block_healing_wave&var.unleash_life_up&cycle.health.pct<config.healing_wave_threshold
-    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.pct<config.healing_wave_threshold
+    - restorative_mists,cycle=members,if=talent.restorative_mists.enabled&cycle.health.effective.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&(var.natures_swiftness_up|var.ancestral_swiftness_up)&cycle.health.effective.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&var.unleash_life_up&cycle.health.effective.pct<config.healing_wave_threshold
+    - healing_wave,cycle=members,if=!config.block_healing_wave&cycle.health.effective.pct<config.healing_wave_threshold
   mouseover_friendly:
     - riptide.mouseover,if=config.mouseover_healing&mouseover.buff.riptide.down&cooldown.riptide.charges>=1
-    - chain_heal.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.chain_heal_threshold
-    - healing_wave.mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold
-    - unleash_life.mouseover,if=config.mouseover_healing&mouseover.health.pct<config.healing_wave_threshold&cooldown.unleash_life.ready
+    - chain_heal.mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<config.chain_heal_threshold
+    - healing_wave.mouseover,if=!config.block_healing_wave&config.mouseover_healing&mouseover.health.effective.pct<config.healing_wave_threshold
+    - unleash_life.mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<config.healing_wave_threshold&cooldown.unleash_life.ready
   moving:
     - spiritwalkers_grace,interrupt=true,range_check=none,if=!buff.spiritwalkers_grace.up&var.needs_member_healing
-    - riptide,target=lowest,if=group.lowest.health.pct<config.riptide_threshold
-    - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.pct<config.riptide_threshold
-    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.pct<config.healing_wave_threshold
+    - riptide,target=lowest,if=group.lowest.health.effective.pct<config.riptide_threshold
+    - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.effective.pct<config.riptide_threshold
+    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.effective.pct<config.healing_wave_threshold
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
     - lava_burst,if=var.lava_surge_up
   dps_filler:
@@ -225,8 +228,8 @@ lists:
     - fireblood,if=var.group_needs_healing
   racial_utility:
     - arcane_torrent,if=player.mana.pct<=90
-    - gift_of_the_naaru,target=lowest,if=group.lowest.health.pct<var.racial_heal_ally_hp
-    - bag_of_tricks,target=lowest,if=group.lowest.health.pct<var.racial_heal_ally_hp
+    - gift_of_the_naaru,target=lowest,if=group.lowest.health.effective.pct<var.racial_heal_ally_hp
+    - bag_of_tricks,target=lowest,if=group.lowest.health.effective.pct<var.racial_heal_ally_hp
     - shadowmeld,if=target.threat>=3&!player.casting
   trinkets:
     - trinket_1,if=trinket_1.sync&(var.group_needs_healing|var.group_emergency)
@@ -260,5 +263,5 @@ lists:
     - call_action_list,name=mouseover_friendly,if=var.mo_friendly_valid&!player.casting
     - call_action_list,name=racial_utility
     - call_action_list,name=trinkets
-    - call_action_list,name=member_healing,if=var.needs_member_healing|var.has_absorbs
-    - call_action_list,name=dps_filler,if=group.lowest.health.pct>=config.dps_threshold&!(config.mouseover_healing&var.mo_friendly_valid)
+    - call_action_list,name=member_healing,if=var.needs_member_healing
+    - call_action_list,name=dps_filler,if=group.lowest.health.effective.pct>=config.dps_threshold&!(config.mouseover_healing&var.mo_friendly_valid)
