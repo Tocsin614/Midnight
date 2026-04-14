@@ -1,4 +1,4 @@
-version: "1.7.5"
+version: "1.7.6"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -9,7 +9,7 @@ movement_allowed: true
 entry: main
 config:
   content_mode:
-    section: "Profile v1.7.5 Best @ Raid ok m+ but Argent Crusade better at high keys"
+    section: "Profile v1.7.6 Best @ Raid ok m+ but Argent Crusade better at high keys"
     label: "Content Mode"
     type: dropdown
     options:
@@ -251,12 +251,12 @@ variables:
   holy_shock_ready:       cooldown.holy_shock.charges>=1
   avenging_wrath_ready:   cooldown.avenging_wrath.ready
   tyrs_deliverance_ready: var.has_tyrs_deliverance&cooldown.tyrs_deliverance.ready
-  tank_needs_healing:   group.tanks.lowest.health.pct<config.tank_hp
-  tank_critical:        group.tanks.lowest.health.pct<config.tank_critical_hp
+  tank_needs_healing:   group.tanks.lowest.health.effective.pct<config.tank_hp
+  tank_critical:        group.tanks.lowest.health.effective.pct<config.tank_critical_hp
   group_emergency:      group.count(cycle.health.effective.pct<config.emergency_hp)>=1
   group_critical:       group.count(cycle.health.effective.pct<config.emergency_hp)>=2
   group_needs_healing:  group.count(cycle.health.effective.pct<config.group_needs_hp)>=2
-  needs_member_healing: group.lowest.health.pct<config.word_of_glory_hp
+  needs_member_healing: group.lowest.health.effective.pct<config.word_of_glory_hp
   has_absorbs:          group.count(cycle.heal_absorb.pct>0)>=1
   mo_friendly_valid:    mouseover.exists&mouseover.alive&mouseover.friendly
   trinket1_living_silk: trinket_1.id=242393
@@ -301,8 +301,8 @@ lists:
     - avenging_wrath,if=!var.has_ac&var.avenging_wrath_ready&var.aw_condition
     - avenging_crusader,if=var.has_ac&cooldown.avenging_crusader.ready&!var.in_ac&var.aw_condition
     - aura_mastery,if=cooldown.aura_mastery.ready&var.am_condition
-    - divine_toll,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.pct<config.dt_hp_threshold&var.use_herald&(active_enemies>=2|!var.group_needs_healing)&target.enemy
-    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.pct<config.dt_hp_threshold
+    - divine_toll,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.effective.pct<config.dt_hp_threshold&var.use_herald&(active_enemies>=2|!var.group_needs_healing)&target.enemy
+    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<5&group.lowest.health.effective.pct<config.dt_hp_threshold
     - holy_prism,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&target.enemy
     - holy_prism,target=lowest,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&!target.enemy
     - beacon_of_virtue,target=lowest,if=var.has_bov&cooldown.beacon_of_virtue.ready&var.bov_condition&var.hp_spendable
@@ -316,7 +316,7 @@ lists:
     - holy_shock,target=tanks.lowest,if=var.holy_shock_ready&var.tank_needs_healing
     - eternal_flame,target=tanks.lowest,if=var.hp_spendable&var.has_eternal_flame&var.tank_needs_healing
     - word_of_glory,target=tanks.lowest,if=var.hp_spendable&!var.has_eternal_flame&var.tank_needs_healing
-    - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.pct<config.flash_of_light_hp
+    - flash_of_light,target=tanks.lowest,if=group.tanks.lowest.health.effective.pct<config.flash_of_light_hp
   virtue_window:
     - light_of_dawn,if=var.hp_capped&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=2
     - eternal_flame,cycle=members,if=var.hp_capped&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
@@ -359,11 +359,11 @@ lists:
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&target.enemy&!var.group_needs_healing
   preemptive_healing:
-    - holy_shock,if=var.holy_shock_ready&casting_target.health.pct<config.holy_shock_hp
-    - flash_of_light,if=var.iof_proc&casting_target.health.pct<config.flash_of_light_hp
+    - holy_shock,if=var.holy_shock_ready&casting_target.health.effective.pct<config.holy_shock_hp
+    - flash_of_light,if=var.iof_proc&casting_target.health.effective.pct<config.flash_of_light_hp
   mouseover_friendly:
     - intercession.mouseover,if=mouseover.dead&health.pct>20
-    - lay_on_hands.mouseover,if=config.mouseover_spells.has(0)&mouseover.health.pct<config.lay_on_hands_hp
+    - lay_on_hands.mouseover,if=config.mouseover_spells.has(0)&mouseover.health.effective.pct<config.lay_on_hands_hp
     - eternal_flame.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<config.word_of_glory_hp&var.hp_spendable&var.has_eternal_flame
     - word_of_glory.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<config.word_of_glory_hp&var.hp_spendable&!var.has_eternal_flame
     - holy_shock.mouseover,if=config.mouseover_spells.has(2)&mouseover.health.effective.pct<config.holy_shock_hp&var.holy_shock_ready
@@ -434,8 +434,8 @@ lists:
     - arcane_pulse,if=enemies.8y.count>=3
   racial_utility:
     - arcane_torrent,if=mana.pct<=config.arcane_torrent_mana
-    - gift_of_the_naaru,target=lowest,if=group.lowest.health.pct<60
-    - bag_of_tricks,target=lowest,if=group.lowest.health.pct<60
+    - gift_of_the_naaru,target=lowest,if=group.lowest.health.effective.pct<60
+    - bag_of_tricks,target=lowest,if=group.lowest.health.effective.pct<60
     - shadowmeld,if=target.threat>=3&!player.casting
   main:
     - call_action_list,name=spell_queue
@@ -455,7 +455,7 @@ lists:
     - call_action_list,name=virtue_window,if=var.in_bov
     - call_action_list,name=avenging_crusader_rotation,if=var.in_ac
     - call_action_list,name=moving,if=player.moving
-    - call_action_list,name=preemptive_healing,if=target.casting&casting_target.health.pct<config.word_of_glory_hp
+    - call_action_list,name=preemptive_healing,if=target.casting&casting_target.health.effective.pct<config.word_of_glory_hp
     - call_action_list,name=mouseover_friendly,if=var.mo_friendly_valid&!player.casting
     - call_action_list,name=racial_offensive,if=var.in_burst
     - call_action_list,name=racial_utility
