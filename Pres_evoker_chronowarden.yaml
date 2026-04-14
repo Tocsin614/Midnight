@@ -1,6 +1,6 @@
 spec: 1468
 name: "Preservation Evoker - Chronowarden (Method)"
-version: "1.6.0"
+version: "1.6.2"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0"
@@ -8,10 +8,9 @@ description: "Method.GG two-layer model. Chronowarden only. M+/Raid dropdown, 4p
 
 movement_allowed: buff.hover.up|buff.spatial_paradox.up
 
-# ─────────────────────────── CONFIG ────────────────────────────
 config:
   content_mode:
-    section: "General v1.6.0"
+    section: "General v1.6.2"
     label: "Content Mode"
     type: dropdown
     options:
@@ -52,6 +51,14 @@ config:
     max: 100
     default: 90
 
+  tank_stasis_hp:
+    section: "Healing"
+    label: "Tank Stasis HP %"
+    type: slider
+    min: 20
+    max: 60
+    default: 50
+
   obsidian_hp:
     section: "Defensives"
     label: "Obsidian Scales HP %"
@@ -91,54 +98,29 @@ config:
     max: 4
     default: 1
 
-# ─────────────────────────── VARIABLES ─────────────────────────
 variables:
   mb_proc: buff.merithras_blessing.up
   twin_echoes_up: buff.twin_echoes.up
-  # 4pc: Verdant Embrace triggers free Emerald Blossom -> Twin Echoes.
-  # VE becomes a ramp-builder, not just a spot heal.
   has_4pc: config.tier_set_4pc
   essence_burst_up: buff.essence_burst.up
   lifespark_up: buff.lifespark.up
-
-  group_healthy: group.lowest.health.pct>=config.dps_threshold
-  # tank1 from v0.6.0 — stable deterministic reference, works even when InRangeAlpha=NO.
-  tank1_low: tank1.exists&tank1.health.pct<config.verdant_hp
-  tank1_critical: tank1.exists&tank1.health.pct<config.emergency_hp
-
-  # Encounter timeline (DBM/BigWigs required for these to be non-zero).
-  # ramp_spread: 10-6s before deadly — spread Echo + Reversion (prepare).
-  # ramp_payoff: <=3s after deadly — Dream Breath direct heal into injured Echo targets, then MB.
-  # tank_buster: <6s before tank hit — Time Dilation.
+  group_healthy: group.lowest.health.effective.pct>=config.dps_threshold
+  tank1_low: tank1.exists&tank1.health.effective.pct<config.verdant_hp
+  tank1_critical: tank1.exists&tank1.health.effective.pct<config.emergency_hp
   encounter_active: encounter.active
-  # Spread: 10-6s out — TA + Echo + Reversion blanket.
-  # DB window: 6-3s out — Dream Breath fires so HoT is ticking when damage hits.
-  # Payoff: <=3s after damage — MB proc + Verdant Embrace into injured targets.
-  # Severity 0 (Type 1 DBM) = generic/debuff — ignore, no ramp.
-  # Severity 1 (Type 2 DBM) = AoE warning — spread Reversion + TA, no Echo ramp.
-  # Severity 2 (Type 3 DBM) = wipe mechanic — full Echo ramp + Dream Breath payoff.
   aoe_prep: encounter.next_deadly.remains<10&encounter.next_deadly.up&encounter.next_deadly.severity=1
   ramp_spread: encounter.next_deadly.remains<10&encounter.next_deadly.remains>6&encounter.next_deadly.up&encounter.next_deadly.severity>=2
   ramp_payoff: encounter.next_deadly.remains<=3&encounter.next_deadly.up&encounter.next_deadly.severity>=2
   tank_buster: encounter.next_tank.remains<6&encounter.next_tank.up&encounter.next_tank.severity>=1
-
-  # db_r3 auto-upgrades from rank1 when 2+ members are below 50% (emergency escalation).
   db_r1: config.dream_breath_rank=1
   db_r2: config.dream_breath_rank=2
-  db_r3: config.dream_breath_rank=3|(config.dream_breath_rank=1&group.count(cycle.health.pct<50)>=2)
-
-  # Stasis state detection.
-  # stasis_filling: buff.stasis.up = recording buff (370537) active, not yet full.
-  # stasis_full: usable.370564 = release spell live, all 3 stored.
+  # db_r3 escalates from rank1 when 2+ members below 50%.
+  db_r3: config.dream_breath_rank=3|(config.dream_breath_rank=1&group.count(cycle.health.effective.pct<50)>=2)
   stasis_filling: buff.stasis.up&!usable.370564
   stasis_full: usable.370564
-  # Open condition: ready, in combat >5s, 2+ members below 75%.
-  stasis_window: var.stasis_filling|var.stasis_full|(cooldown.stasis.ready&!buff.stasis.up&player.combat.time>5&group.count(cycle.health.pct<75)>=2)
+  stasis_window: var.stasis_filling|var.stasis_full|(cooldown.stasis.ready&!buff.stasis.up&player.combat.time>5&(group.count(cycle.health.effective.pct<75)>=2|tank1.exists&tank1.health.effective.pct<config.tank_stasis_hp))
+  group_low: group.count(cycle.health.effective.pct<75)>=2
 
-  # Group damage trigger for stasis release / major heals.
-  group_low: group.count(cycle.health.pct<75)>=2
-
-# ─────────────────────────── LISTS ─────────────────────────────
 lists:
 
   main:
@@ -156,63 +138,34 @@ lists:
     - call_action_list,name=healing
     - call_action_list,name=damage,if=var.group_healthy
 
-  # ── Encounter Ramp (DBM/BigWigs timeline) ───────────────────
-  # DBM Severity gates:
-  #   Severity 1 (Type 2 AoE): aoe_prep — Reversion + TA only, no Echo ramp
-  #   Severity 2 (Type 3 wipe): full ramp — Echo + Dream Breath payoff
   encounter_ramp:
-    # Tank buster: Time Dilation before it lands (severity 1+ — any tank event matters).
     - time_dilation,cycle=members,if=cycle.tank&var.tank_buster&cooldown.time_dilation.ready
-
-    # ── Severity 2 payoff (wipe mechanic — damage landed, people injured) ──
-    # Dream Breath FIRST — direct heal hits all Echo'd targets doubled, HoT on injured.
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=3&var.db_r3
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=2&var.db_r2
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=1&var.db_r1
     - dream_breath,empower_to=3,if=var.ramp_payoff&!player.channeling&!player.moving&var.db_r3
     - dream_breath,empower_to=2,if=var.ramp_payoff&!player.channeling&!player.moving&var.db_r2
     - dream_breath,empower_to=1,if=var.ramp_payoff&!player.channeling&!player.moving&var.db_r1
-    # MB proc fires into lowest injured target.
-    - reversion,target=lowest,if=var.ramp_payoff&var.mb_proc&group.lowest.health.pct<98&group.lowest.range<=30
-    # Verdant Embrace on tank for Lifebind.
+    - reversion,target=lowest,if=var.ramp_payoff&var.mb_proc&group.lowest.health.effective.pct<98&group.lowest.range<=30
     - verdant_embrace,cycle=members,if=cycle.tank&var.ramp_payoff
-
-    # ── Severity 2 spread (10-6s before wipe mechanic — prepare) ──
-    # Temporal Anomaly first — instant AoE Echo; fires regardless of group health.
     - temporal_anomaly,if=var.ramp_spread&cooldown.temporal_anomaly.ready
-    # PRIORITY: Someone dropped below verdant_hp mid-spread — stop cycling everyone else.
-    # Echo the lowest member who is missing it, then Reversion them, then resume blanket.
-    - echo,target=missing.echo.lowest,if=var.ramp_spread&group.lowest.health.pct<config.verdant_hp&essence>=2&group.missing.echo.lowest.range<=30
-    - reversion,target=lowest,if=var.ramp_spread&!var.mb_proc&group.lowest.health.pct<config.verdant_hp&group.lowest.range<=30
-    # Manual Echo blanket — pauses while anyone is critically low (handled above).
-    - echo,cycle=members,if=cycle.tank&var.ramp_spread&cycle.buff.echo.down&essence>=2&group.lowest.health.pct>=config.verdant_hp
-    - echo,cycle=members,if=var.ramp_spread&cycle.buff.echo.down&essence>=2&cycle.range<=30&group.lowest.health.pct>=config.verdant_hp
-    # Reversion blanket — Golden Hour value on impact. Pauses while anyone needs priority.
-    - reversion,cycle=members,if=cycle.tank&var.ramp_spread&!var.mb_proc&cycle.buff.reversion.down&group.lowest.health.pct>=config.verdant_hp
-    - reversion,cycle=members,if=var.ramp_spread&!var.mb_proc&cycle.buff.reversion.down&cycle.health.pct<95&cycle.range<=30&group.lowest.health.pct>=config.verdant_hp
-
-    # ── Severity 1 AoE prep (Type 2 — spread incoming, no Echo ramp) ──
-    # Just keep Reversion blanket rolling and TA shields up. No Echo — ramp is overkill here.
+    - echo,target=missing.echo.lowest,if=var.ramp_spread&group.lowest.health.effective.pct<config.verdant_hp&essence>=2&group.missing.echo.lowest.range<=30
+    - reversion,target=lowest,if=var.ramp_spread&!var.mb_proc&group.lowest.health.effective.pct<config.verdant_hp&group.lowest.range<=30
+    - echo,cycle=members,if=cycle.tank&var.ramp_spread&cycle.buff.echo.down&essence>=2&group.lowest.health.effective.pct>=config.verdant_hp
+    - echo,cycle=members,if=var.ramp_spread&cycle.buff.echo.down&essence>=2&cycle.range<=30&group.lowest.health.effective.pct>=config.verdant_hp
+    - reversion,cycle=members,if=cycle.tank&var.ramp_spread&!var.mb_proc&cycle.buff.reversion.down&group.lowest.health.effective.pct>=config.verdant_hp
+    - reversion,cycle=members,if=var.ramp_spread&!var.mb_proc&cycle.buff.reversion.down&cycle.health.effective.pct<95&cycle.range<=30&group.lowest.health.effective.pct>=config.verdant_hp
     - temporal_anomaly,if=var.aoe_prep&cooldown.temporal_anomaly.ready
     - reversion,cycle=members,if=cycle.tank&var.aoe_prep&!var.mb_proc&cycle.buff.reversion.down
-    - reversion,cycle=members,if=var.aoe_prep&!var.mb_proc&cycle.buff.reversion.down&cycle.health.pct<95&cycle.range<=30
+    - reversion,cycle=members,if=var.aoe_prep&!var.mb_proc&cycle.buff.reversion.down&cycle.health.effective.pct<95&cycle.range<=30
 
-  # ── Stasis: M+ Chronowarden standalone combo ─────────────────
-  # Method: "Dream Breath (MB proc) → Temporal Anomaly (Echoes) → Verdant Embrace (consumes Echoes)"
-  # Release fires when full buff is up and group is damaged.
-  # Leak guard return holds rotation here while filling.
   stasis:
-    # Release = 370564 (separate spell that appears on bar when 3 spells stored).
-    # Auto-fires when group struggling, tank low, anyone critical, or window closing.
     - 370564,if=var.stasis_full&var.group_low
-    - 370564,if=var.stasis_full&group.lowest.health.pct<60
-    # Safety dump: fire before 30s window expires.
+    - 370564,if=var.stasis_full&group.lowest.health.effective.pct<60
+    - 370564,if=var.stasis_full&tank1.exists&tank1.health.effective.pct<config.tank_stasis_hp
     - 370564,if=var.stasis_full
-
-    # Open = stasis (spell name 370537, keybind Ctrl+\).
+    - stasis,if=cooldown.stasis.ready&player.combat.time>5&tank1.exists&tank1.health.effective.pct<config.tank_stasis_hp&cooldown.dream_breath.ready
     - stasis,if=cooldown.stasis.ready&player.combat.time>5&var.group_low&cooldown.dream_breath.ready
-
-    # Fill: Method M+ Chrono standalone — DB first (MB proc), TA second (Echoes), VE third (consumes Echoes).
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=3&var.db_r3
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=2&var.db_r2
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=1&var.db_r1
@@ -220,32 +173,24 @@ lists:
     - dream_breath,empower_to=2,if=var.stasis_filling&buff.stasis.up&cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r2
     - dream_breath,empower_to=1,if=var.stasis_filling&buff.stasis.up&cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r1
     - temporal_anomaly,if=var.stasis_filling&cooldown.temporal_anomaly.ready
+    - verdant_embrace,cycle=tanks,if=var.stasis_filling&buff.stasis.up&cycle.health.effective.pct<config.tank_stasis_hp&group.lowest.health.effective.pct>=75&cycle.range<=30
     - verdant_embrace,target=lowest,if=var.stasis_filling&buff.stasis.up&group.lowest.range<=30
-
-    # Leak guard: hold here while filling so nothing else gets stored accidentally.
-    # Releases when someone drops below emergency_hp — lets healing list through even mid-fill.
-    - return,if=var.stasis_filling&group.lowest.health.pct>config.emergency_hp
+    - return,if=var.stasis_filling&group.lowest.health.effective.pct>config.emergency_hp
 
   out_of_combat:
-    # Blessing of the Bronze: apply to any member missing it before combat.
     - blessing_of_the_bronze.player,range_check=none,if=!player.combat&buff.blessing_of_the_bronze.down
     - reversion.player,range_check=none,if=!player.combat&buff.reversion.down
-    # Group top-off between pulls.
-    - reversion,cycle=members,if=cycle.health.pct<90&cycle.buff.reversion.down&cycle.range<=30
-    - emerald_blossom,if=group.count(cycle.health.pct<85)>=2
-    - living_flame,target=lowest,if=group.lowest.health.pct<90&group.lowest.range<=30
+    - reversion,cycle=members,if=cycle.health.effective.pct<90&cycle.buff.reversion.down&cycle.range<=30
+    - emerald_blossom,if=group.count(cycle.health.effective.pct<85)>=2
+    - living_flame,target=lowest,if=group.lowest.health.effective.pct<90&group.lowest.range<=30
 
   defensives:
     - obsidian_scales.player,range_check=none,if=health.pct<config.obsidian_hp
 
   cooldowns:
-    # Fire Tip the Scales into encounter payoff window if available — Temporal Burst haste is huge.
-    # cooldown_bypass checks real CD even if CDs are user-blocked.
     - tip_the_scales,if=cooldown_bypass.tip_the_scales.ready&(var.ramp_payoff|(cooldown.dream_breath.ready|cooldown.fire_breath.ready))
-    # Rewind: 2+ members below 50% — fires right after heavy group damage. ONE line, no duplicate.
-    - rewind,if=group.count(cycle.health.pct<50)>=2&cooldown.rewind.ready
-    # Time Dilation: tank1 reference is stable/deterministic vs tanks.lowest which can switch.
-    - time_dilation,cycle=members,if=cycle.tank&cycle.health.pct<60&cooldown.time_dilation.ready
+    - rewind,if=group.count(cycle.health.effective.pct<50)>=2&cooldown.rewind.ready
+    - time_dilation,cycle=members,if=cycle.tank&cycle.health.effective.pct<60&cooldown.time_dilation.ready
     - trinket_1,if=trinket_1.usable&trinket_1.sync
     - trinket_2,if=trinket_2.usable&trinket_2.sync
 
@@ -255,14 +200,10 @@ lists:
     - call_action_list,name=layer2
 
   emergency:
-    # Self-heal first — healer dying stops all healing. Direct health.pct check, no group system.
     - verdant_embrace.player,range_check=none,interrupt=true,if=health.pct<config.emergency_hp
-    # tank1 direct check: fires even when InRangeAlpha=NO excludes tank from cycle/group systems.
     - verdant_embrace,cycle=members,interrupt=true,if=cycle.tank&var.tank1_critical
-    - verdant_embrace,target=lowest,interrupt=true,if=group.lowest.health.pct<config.emergency_hp&group.lowest.range<=30
+    - verdant_embrace,target=lowest,interrupt=true,if=group.lowest.health.effective.pct<config.emergency_hp&group.lowest.range<=30
 
-  # Layer 1: Dream Breath and Reversion blanket.
-  # empower_to handles both initiation and release at the configured rank.
   maintenance:
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=3&var.db_r3
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=2&var.db_r2
@@ -271,61 +212,38 @@ lists:
     - dream_breath,empower_to=2,if=cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r2
     - dream_breath,empower_to=1,if=cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r1
     - temporal_anomaly,if=cooldown.temporal_anomaly.ready
-    # Keep Reversion on self — healer needs Grace Period amp and MB passive on incoming damage.
     - reversion.player,range_check=none,if=!var.mb_proc&buff.reversion.down
     - reversion,cycle=members,if=cycle.tank&!var.mb_proc&cycle.buff.reversion.down
     - reversion.player,range_check=none,if=!var.mb_proc&buff.reversion.remains<6
     - reversion,cycle=members,if=cycle.tank&!var.mb_proc&cycle.buff.reversion.remains<6
-    - reversion,cycle=members,if=!var.mb_proc&cycle.buff.reversion.down&cycle.health.pct<config.reversion_hp&cycle.range<=30
-    - reversion,cycle=members,if=!var.mb_proc&cycle.buff.reversion.remains<6&cycle.health.pct<config.reversion_hp&cycle.range<=30
+    - reversion,cycle=members,if=!var.mb_proc&cycle.buff.reversion.down&cycle.health.effective.pct<config.reversion_hp&cycle.range<=30
+    - reversion,cycle=members,if=!var.mb_proc&cycle.buff.reversion.remains<6&cycle.health.effective.pct<config.reversion_hp&cycle.range<=30
 
-  # Layer 2: Echo ramps and payoff spells.
-  # Method: Echo first, then VE > MB > Dream Breath as follow-up priority.
   layer2:
-    # Don't re-Echo targets who already have it — wastes 2 essence for zero gain.
-    # essence>=2 ensures we actually have the resource before placing.
-    - echo,cycle=members,if=cycle.buff.echo.down&cycle.health.pct<85&essence>=2&cycle.range<=30
-    # Method: "Echo → Verdant Embrace is one of your best direct healing combos."
-    # VE on a target with Echo doubles the heal. Always prioritise Echo'd targets.
-    # Tank with Echo first — Grace Period + Lifebind + doubled heal on the squishiest target.
+    - echo,cycle=members,if=cycle.buff.echo.down&cycle.health.effective.pct<85&essence>=2&cycle.range<=30
     - verdant_embrace,cycle=members,if=cycle.tank&cycle.buff.echo.up&cooldown.verdant_embrace.charges>=1
-    # Any member with Echo — cash out the ramp.
-    - verdant_embrace,cycle=members,if=cycle.buff.echo.up&cycle.health.pct<95&cooldown.verdant_embrace.charges>=1&cycle.range<=30
-    # No Echo on tank but HP is low — still worth it for Lifebind.
-    - verdant_embrace,cycle=members,if=cycle.tank&cycle.health.pct<config.verdant_hp&cooldown.verdant_embrace.charges>=1
-    # No Echo, not tank — only cast at emergency threshold to save charge for Echo combos.
-    - verdant_embrace,target=lowest,if=group.lowest.health.pct<config.emergency_hp&cooldown.verdant_embrace.charges>=1&group.lowest.range<=30
-    # With 4pc: VE also generates free EB + Twin Echoes — cast more aggressively on any low member.
-    - verdant_embrace,cycle=members,if=var.has_4pc&cycle.health.pct<85&cooldown.verdant_embrace.charges>=1&cycle.range<=30
-    # Primacy maintenance: guide says refresh every 15s with non-echoed VE.
-    # Only fires on 2nd charge so 1 charge is always reserved for echo payoff combos.
+    - verdant_embrace,cycle=members,if=cycle.buff.echo.up&cycle.health.effective.pct<95&cooldown.verdant_embrace.charges>=1&cycle.range<=30
+    - verdant_embrace,cycle=members,if=cycle.tank&cycle.health.effective.pct<config.verdant_hp&cooldown.verdant_embrace.charges>=1
+    - verdant_embrace,target=lowest,if=group.lowest.health.effective.pct<config.emergency_hp&cooldown.verdant_embrace.charges>=1&group.lowest.range<=30
+    - verdant_embrace,cycle=members,if=var.has_4pc&cycle.health.effective.pct<85&cooldown.verdant_embrace.charges>=1&cycle.range<=30
     - verdant_embrace,target=lowest,if=cooldown.verdant_embrace.charges>=2&group.lowest.range<=30
-    # MB proc: cast Reversion — game upgrades in-flight to Merithra's Blessing.
-    - reversion,target=lowest,if=var.mb_proc&group.lowest.health.pct<98&group.lowest.range<=30
+    - reversion,target=lowest,if=var.mb_proc&group.lowest.health.effective.pct<98&group.lowest.range<=30
     - chrono_flames,target=lowest,if=var.lifespark_up&group.lowest.range<=30
-    # Dream Breath fallback when VE on CD and no MB proc.
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=3&var.db_r3
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=2&var.db_r2
     - dream_breath,ignore_usable=true,ignore_cooldown=true,casting_check=dream_breath,if=player.empower_stage>=1&var.db_r1
     - dream_breath,empower_to=3,if=cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r3
     - dream_breath,empower_to=2,if=cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r2
     - dream_breath,empower_to=1,if=cooldown.dream_breath.ready&!player.channeling&!player.moving&var.db_r1
-    # Without 4pc: EB manually generates Twin Echoes — fire whenever group damaged + procs available.
-    - emerald_blossom,if=!var.has_4pc&group.count(cycle.health.pct<75)>=2&(var.essence_burst_up|var.twin_echoes_up)
-    - emerald_blossom,if=!var.has_4pc&group.count(cycle.health.pct<65)>=3
-    # With 4pc: VE handles Twin Echoes. EB only as bonus AoE heal when group is chunked.
-    - emerald_blossom,if=var.has_4pc&group.count(cycle.health.pct<65)>=3&var.essence_burst_up
-    # Chrono Flames: cast-time heal filler when group is moderately damaged and all heals are on CD.
-    # Fires standalone (no lifespark proc needed) — fills the 2-4s gap at 75-80% HP.
-    - chrono_flames,target=lowest,if=group.lowest.health.pct<80&group.lowest.range<=30&!player.channeling
-    # Disintegrate: Energy Loop mana regen — only when heals are on CD and group is reasonably safe.
-    - disintegrate,if=talent.energy_loop.enabled&!player.moving&!player.channeling&group.lowest.health.pct>=80
-    - disintegrate,ignore_queue=true,if=talent.energy_loop.enabled&player.channeling&group.lowest.health.pct>=80
+    - emerald_blossom,if=!var.has_4pc&group.count(cycle.health.effective.pct<75)>=2&(var.essence_burst_up|var.twin_echoes_up)
+    - emerald_blossom,if=!var.has_4pc&group.count(cycle.health.effective.pct<65)>=3
+    - emerald_blossom,if=var.has_4pc&group.count(cycle.health.effective.pct<65)>=3&var.essence_burst_up
+    - chrono_flames,target=lowest,if=group.lowest.health.effective.pct<80&group.lowest.range<=30&!player.channeling
+    - disintegrate,if=talent.energy_loop.enabled&!player.moving&!player.channeling&group.lowest.health.effective.pct>=80
+    - disintegrate,ignore_queue=true,if=talent.energy_loop.enabled&player.channeling&group.lowest.health.effective.pct>=80
 
-  # Damage/mana fillers — only entered when group_healthy (gated in main).
   damage:
     - return,if=!var.group_healthy
-    # Fire Breath: release lines first (casting_check drives release at configured rank), then initiation.
     - fire_breath,ignore_usable=true,ignore_cooldown=true,casting_check=fire_breath,if=player.empower_stage>=4&config.fire_breath_rank=4
     - fire_breath,ignore_usable=true,ignore_cooldown=true,casting_check=fire_breath,if=player.empower_stage>=3&config.fire_breath_rank=3
     - fire_breath,ignore_usable=true,ignore_cooldown=true,casting_check=fire_breath,if=player.empower_stage>=2&config.fire_breath_rank=2
@@ -334,12 +252,8 @@ lists:
     - fire_breath,empower_to=3,if=!player.channeling&!player.moving&config.fire_breath_rank=3
     - fire_breath,empower_to=2,if=!player.channeling&!player.moving&config.fire_breath_rank=2
     - fire_breath,empower_to=1,if=!player.channeling&!player.moving&config.fire_breath_rank=1
-    # Disintegrate: Energy Loop mana engine. Full channel = ~7,200 mana via Energy Loop.
     - disintegrate,if=talent.energy_loop.enabled&!player.moving&!player.channeling
     - disintegrate,ignore_queue=true,if=talent.energy_loop.enabled&player.channeling
-    # Living Flame: main filler — generates Essence Burst (20% per cast) and Chrono Flames proc.
     - living_flame,if=!var.lifespark_up&!player.channeling
-    # Chrono Flames: fires after Living Flame proc (Lifespark up).
     - chrono_flames,ignore_queue=true,if=!player.channeling
-    # Azure Strike: absolute last-resort filler. Instant, no CD, no resource cost.
     - azure_strike
