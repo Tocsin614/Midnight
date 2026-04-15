@@ -1,4 +1,4 @@
-version: "1.7.6"
+version: "1.7.7"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun | Midnight Season 1"
@@ -9,7 +9,7 @@ movement_allowed: true
 entry: main
 config:
   content_mode:
-    section: "Profile v1.7.6 Best @ Raid ok m+ but Argent Crusade better at high keys"
+    section: "Profile v1.7.7 Best @ Raid ok m+ but Argent Crusade better at high keys"
     label: "Content Mode"
     type: dropdown
     options:
@@ -257,7 +257,7 @@ variables:
   group_critical:       group.count(cycle.health.effective.pct<config.emergency_hp)>=2
   group_needs_healing:  group.count(cycle.health.effective.pct<config.group_needs_hp)>=2
   needs_member_healing: group.lowest.health.effective.pct<config.word_of_glory_hp
-  has_absorbs:          group.count(cycle.heal_absorb.pct>0)>=1
+  has_absorbs:          group.count(cycle.health.effective.pct<config.word_of_glory_hp)>=1
   mo_friendly_valid:    mouseover.exists&mouseover.alive&mouseover.friendly
   trinket1_living_silk: trinket_1.id=242393
   trinket2_living_silk: trinket_2.id=242393
@@ -401,13 +401,10 @@ lists:
     - judgment,if=var.iof_proc&!var.group_needs_healing&target.enemy
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
   member_healing:
-    - holy_shock,interrupt=true,cycle=members,if=cycle.heal_absorb.pct>0
-    - eternal_flame,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&var.has_eternal_flame
-    - word_of_glory,cycle=members,if=cycle.heal_absorb.pct>0&var.hp_spendable&!var.has_eternal_flame
+    - holy_shock,interrupt=true,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
     - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<config.word_of_glory_hp
     - light_of_dawn,if=var.hp_spendable&var.is_raid&group.count(cycle.health.effective.pct<config.light_of_dawn_hp)>=config.light_of_dawn_injured
-    - holy_shock,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock_hp
     - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<config.flash_of_light_hp
     - holy_light,cycle=members,if=cycle.health.effective.pct<config.holy_light_hp&mana.pct>config.mana_holy_light
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<config.flash_of_light_hp
