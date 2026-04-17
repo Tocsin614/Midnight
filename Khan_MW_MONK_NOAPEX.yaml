@@ -14,7 +14,7 @@ config:
     label: "SCK Threshold (enemies in 8y)"
     min: 1
     max: 10
-    default: 1
+    default: 3
   renm_mob_threshold:
     section: "Melee Weave"
     type: slider
@@ -119,6 +119,7 @@ lists:
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
     - life_cocoon.focus,range_check=focus,interrupt=true,if=config.use_life_cocoon&focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.life_cocoon_threshold&focus.range<=40&player.combat&cooldown.life_cocoon.ready
+    - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
     - rising_sun_kick,if=buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
     - call_action_list,name=emergency_heal
@@ -129,7 +130,6 @@ lists:
     - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&!var.melee_weave_ok&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&!var.melee_weave_ok&group.lowest.range<=40
-    - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - call_action_list,name=noapex_mplus
     - call_action_list,name=tank_heal
     - call_action_list,name=healer_heal
