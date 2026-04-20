@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.0.1"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -9,7 +9,7 @@ movement_allowed: true
 
 config:
   aoe_threshold:
-    section: "Profile v1.0.0 No-Apex M+"
+    section: "Profile v1.0.1 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -59,7 +59,7 @@ config:
     label: "Melee Weave Above HP%"
     min: 1
     max: 100
-    default: 40
+    default: 65
   ancient_teachings_hp:
     section: "Melee Weave"
     type: slider
@@ -67,6 +67,13 @@ config:
     min: 1
     max: 100
     default: 93
+  vv_proc_hp:
+    section: "Melee Weave"
+    type: slider
+    label: "Instant Sheiluns Gift HP%"
+    min: 1
+    max: 100
+    default: 70
   fortifying_brew_hp:
     section: "Defensives"
     type: slider
@@ -114,31 +121,31 @@ lists:
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
+    - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
     - call_action_list,name=soothing_mist_channel,if=buff.soothing_mist.up
     - call_action_list,name=defensives
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.vv_proc_hp&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.vv_proc_hp&group.lowest.range<=40
     - life_cocoon.focus,range_check=focus,interrupt=true,if=config.use_life_cocoon&focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.life_cocoon_threshold&focus.range<=40&player.combat&cooldown.life_cocoon.ready
     - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
-    - rising_sun_kick,if=buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
+    - rising_sun_kick
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
-    - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
-    - thunder_focus_tea,range_check=none,if=var.tft_ready&(var.rsk_ready|(var.has_rwk&var.rwk_ready))
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy&target.range<=5
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
-    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&!var.melee_weave_ok&group.lowest.range<=40
-    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&!var.melee_weave_ok&group.lowest.range<=40
+    - thunder_focus_tea,range_check=none,if=var.tft_ready
+    - rushing_wind_kick
     - call_action_list,name=noapex_mplus
     - call_action_list,name=tank_heal
     - call_action_list,name=healer_heal
     - call_action_list,name=dps_noapex,if=var.melee_weave_ok
 
   out_of_combat:
-    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40
-    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40
-
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<100&group.lowest.range<=40
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<100&group.lowest.range<=40
+    - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40&!player.moving
+    - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40&!player.moving
   soothing_mist_channel:
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<25&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<25&group.lowest.range<=40
@@ -175,21 +182,18 @@ lists:
     - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.effective.pct>85&!buff.soothing_mist.up
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
-    - blackout_kick,if=var.group_needs_at&target.exists&target.enemy&target.range<=5
+    - blackout_kick,if=buff.teachings_of_the_monastery.stack>=2&target.range<=5
     - tiger_palm,if=var.group_needs_at&target.exists&target.enemy&target.range<=5
     - spinning_crane_kick,if=!var.group_needs_at&target.exists&target.enemy&enemies.combat.8y>=config.aoe_threshold
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<config.melee_weave_hp&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<config.melee_weave_hp&group.lowest.range<=40
     - renewing_mist,cycle=members,if=!buff.thunder_focus_tea.up&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge&var.renm_ok
-    - blackout_kick,if=target.exists&target.enemy&target.range<=5
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   noapex_chiji:
     - enveloping_mist,cycle=members,if=!buff.thunder_focus_tea.up&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.melee_weave_hp&cycle.range<=40
-    - blackout_kick,if=buff.teachings_of_the_monastery.stack>=4&target.range<=5
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<config.melee_weave_hp&group.lowest.range<=40
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
-    - blackout_kick,if=target.exists&target.enemy&target.range<=5
 
   noapex_hotjs:
     - renewing_mist,cycle=members,if=!buff.thunder_focus_tea.up&var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_ok
@@ -201,8 +205,6 @@ lists:
     - call_action_list,name=dps_noapex_hotjs,if=var.hotjs_active
     - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy
     - spinning_crane_kick,if=target.exists&target.enemy&enemies.combat.8y>=config.aoe_threshold
-    - tiger_palm,if=target.exists&target.enemy&target.range<=5
-    - blackout_kick,if=target.exists&target.enemy&target.range<=5
 
   dps_noapex_hotjs:
     - thunder_focus_tea,range_check=none,if=var.tft_ready
