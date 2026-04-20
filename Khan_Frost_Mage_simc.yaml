@@ -1,8 +1,3 @@
-# ===========================================================================
-# Mage Frost  |  spec ID: 64
-# Sources: rotation-yaml-intellisense-0_5_0.vsix + simc + some spice
-# Version: 1.4.2
-# ===========================================================================
 
 spec: 64
 name: "Mage Frost simc"
@@ -13,7 +8,7 @@ description: "SimC APL + buffs, defensives, interrupts, utility - Midnight 12.0"
 movement_allowed: buff.ice_floes.up
 
 config:
-  # === Combat ===
+
   aoe_threshold:
     section: "Combat"
     type: slider
@@ -21,25 +16,16 @@ config:
     max: 8
     value: 3
 
-  # === Cooldowns ===
   use_cds:
     section: "Cooldowns"
     type: checkbox
     value: true
 
-  use_potion:
-    section: "Cooldowns"
-    type: checkbox
-    value: true
-
-  # === Utility ===
   auto_spellsteal:
     section: "Utility"
     type: checkbox
     value: true
 
-  # === Defensives ===
-  # Ice Barrier: 100 = OOC pre-buff always on, 1-99 = cast in-combat at this HP%, 0 = disabled
   ice_barrier_hp:
     section: "Defensives"
     type: slider
@@ -47,7 +33,6 @@ config:
     max: 100
     value: 100
 
-  # Ice Block: emergency death prevention (cast at or below this HP %)
   ice_block_hp:
     section: "Defensives"
     type: slider
@@ -56,24 +41,21 @@ config:
     value: 15
 
 lists:
-  # === Out of combat ===
+
   out_of_combat:
-    # range_check=none on self-buffs: tells the framework to ignore target entirely
-    # and cast on self — this is the correct pattern (ref: Khan's Holy Priest)
+
     - arcane_intellect,range_check=none,if=!buff.arcane_intellect.up|buff.arcane_intellect.remains<300
     - ice_barrier,range_check=none,if=!buff.ice_barrier.up&cooldown.ice_barrier.ready
     - summon_water_elemental,range_check=none,if=talent.summon_water_elemental&!pet.alive
 
-  # === Defensives ===
   defensives:
-    # Ice Block: last-resort death prevention — fires at or below HP threshold
+
     - ice_block,if=health.pct<=config.ice_block_hp&!buff.ice_block.up
     # Cold Snap: reset Ice Block / Ice Barrier CDs when HP is critically low
     - cold_snap,if=talent.cold_snap&(!cooldown.ice_block.ready|!cooldown.ice_barrier.ready)&health.pct<=config.ice_block_hp*2
     # Ice Barrier in-combat: cast when HP drops to or below threshold (0 = disabled)
     - ice_barrier,if=config.ice_barrier_hp>0&health.pct<=config.ice_barrier_hp&!buff.ice_barrier.up&cooldown.ice_barrier.ready
 
-  # === Interrupts ===
   interrupts:
     - counterspell,if=interrupt.target.check
     - counterspell.mouseover,if=interrupt.mouseover.check
@@ -84,14 +66,10 @@ lists:
     - arcane_torrent.mouseover,if=interrupt.mouseover.check
     - arcane_torrent.focus,if=interrupt.focus.check
 
-  # === Utility ===
   utility:
     - spellsteal,range_check=target,if=config.auto_spellsteal&target.has_stealable
 
-  # === Cooldowns ===
   cds:
-    # Potion: gated on config.use_potion so players can disable it for trash/farming
-    - combat_potion,if=config.use_potion&(combat.time=0|talent.frostfire_bolt|prev_gcd.1.frozen_orb|prev_gcd.1.ray_of_frost|debuff.freezing.stack<6&cooldown.ray_of_frost.charges>=1|fight_remains<35)
     - use_items,if=combat.time=0|talent.frostfire_bolt|prev_gcd.1.frozen_orb|prev_gcd.1.ray_of_frost|debuff.freezing.stack<6&cooldown.ray_of_frost.charges>=1|fight_remains<20
     # Mirror Image: 2-min DPS CD, talent-gated
     - mirror_image,if=talent.mirror_image&cooldown.mirror_image.ready
@@ -113,7 +91,6 @@ lists:
     - ray_of_frost,if=fight_remains<12
     - ice_lance,if=fight_remains<gcd.max*1.5
 
-  # === Frostfire AoE ===
   ff_aoe:
     - blizzard,if=buff.freezing_rain.up
     - flurry,if=buff.brain_freeze.up&buff.thermal_void.down
@@ -128,7 +105,6 @@ lists:
     - frostbolt
     - call_action_list,name=movement
 
-  # === Frostfire Single Target ===
   ff_st:
     - flurry,if=buff.brain_freeze.up&buff.thermal_void.down
     - frozen_orb
@@ -141,13 +117,11 @@ lists:
     - frostbolt
     - call_action_list,name=movement
 
-  # === Movement ===
   movement:
     - blizzard,if=buff.freezing_rain.up
     - cone_of_cold,if=talent.cone_of_frost
     - ice_lance
 
-  # === Spellslinger AoE ===
   ss_aoe:
     - comet_storm,if=talent.comet_storm&buff.splinterstorm.down
     - blizzard,if=buff.freezing_rain.up
@@ -163,7 +137,6 @@ lists:
     - frostbolt
     - call_action_list,name=movement
 
-  # === Spellslinger Single Target ===
   ss_st:
     - comet_storm,if=talent.comet_storm&buff.splinterstorm.down
     - flurry,if=buff.brain_freeze.up&buff.thermal_void.down
@@ -176,41 +149,20 @@ lists:
     - frostbolt
     - call_action_list,name=movement
 
-  # === Main ===
   main:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
     - call_action_list,name=auto_target_ranged
-    # Buffs — fire unconditionally OOC regardless of target
+    - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat
-    # Framework target check — stops rotation on invalid/dead targets.
-    # Auto-engage exceptions: quest mobs (1), target in combat (2), targeting party member (3).
     - return,if=!target.valid&!((config.auto_combat.has(1)&target.quest_mob&target.enemy&!target.dead)|(config.auto_combat.has(2)&target.combat&target.enemy&!target.dead)|(config.auto_combat.has(3)&target.targeting_party&target.enemy&!target.dead))
     - return,if=!target.valid&config.auto_combat.has(0)
-    # Everything below here only runs against a valid living enemy target
     - call_action_list,name=defensives
     - call_action_list,name=interrupts
     - call_action_list,name=utility
     - call_action_list,name=cds,if=config.use_cds
-    # Build + AoE routing — Spellslinger detected by talent.splintering_sorcery
     - run_action_list,name=ff_aoe,if=talent.frostfire_bolt&enemies_around_target>=config.aoe_threshold
     - run_action_list,name=ff_st,if=talent.frostfire_bolt
     - run_action_list,name=ss_aoe,if=talent.splintering_sorcery&enemies_around_target>=config.aoe_threshold
     - run_action_list,name=ss_st,if=talent.splintering_sorcery
-    # Fallback: generic ST if neither hero build is talented (shouldn't happen in normal play)
     - run_action_list,name=ss_st
-
-# ===========================================================================
-# TALENT DETECTION NOTES:
-#
-#  Frostfire build  → talent.frostfire_bolt      (root node of Frostfire hero tree)
-#  Spellslinger     → talent.splintering_sorcery  (root node, SpellID 443739)
-#                     buff.splinterstorm still used inside ss_* lists —
-#                     that is the proc buff name from the SimC APL, verify in-game
-#
-# STILL TO VERIFY ON MIDNIGHT SERVER:
-#   - buff.splinterstorm: confirm this proc buff name is correct in the framework
-#   - buff.thermal_void / buff.frostfire_empowerment: confirm both registered
-#   - cold_snap: confirm it resets ice_block / ice_barrier CDs on this build
-#   - talent.cold_snap / talent.mirror_image: confirm exact talent node names
-# ===========================================================================
