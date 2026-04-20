@@ -1,4 +1,4 @@
-version: "1.0.1"
+version: "1.0.2"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -9,7 +9,7 @@ movement_allowed: true
 
 config:
   aoe_threshold:
-    section: "Profile v1.0.1 No-Apex M+"
+    section: "Profile v1.0.2 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -184,7 +184,7 @@ lists:
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!buff.soothing_mist.up
     - blackout_kick,if=buff.teachings_of_the_monastery.stack>=2&target.range<=5
     - tiger_palm,if=var.group_needs_at&target.exists&target.enemy&target.range<=5
-    - spinning_crane_kick,if=!var.group_needs_at&target.exists&target.enemy&enemies.combat.8y>=config.aoe_threshold
+    - spinning_crane_kick,if=var.melee_weave_ok&target.exists&target.enemy&enemies.combat.8y>=config.aoe_threshold
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<config.melee_weave_hp&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<config.melee_weave_hp&group.lowest.range<=40
     - renewing_mist,cycle=members,if=!buff.thunder_focus_tea.up&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge&var.renm_ok
