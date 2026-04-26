@@ -1,4 +1,4 @@
-version: "1.0.2"
+version: "1.0.3"
 author: Khan
 spec: 65
 name: Lightsmith Holy Paladin M+
@@ -7,7 +7,7 @@ description: "Holy Paladin M+ Lightsmith"
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "Lightsmith Holy Paladin M+ v1.0.2"
+    section: "Lightsmith Holy Paladin M+ v1.0.3"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -70,8 +70,8 @@ variables:
   group_critical: group.count(cycle.health.effective.pct<30)>=1
   group_emergency: group.count(cycle.health.effective.pct<50)>=2
   group_needs_healing: group.count(cycle.health.effective.pct<80)>=2
-  holy_bulwark_on_tank: tank1.buff.432607.up.any
-  sacred_weapon_on_player: buff.432502.up.any
+  holy_bulwark_on_tank: buff.holy_bulwark.up.any
+  sacred_weapon_on_player: buff.sacred_weapon.up.any
   has_living_silk: var.trinket1_living_silk|var.trinket2_living_silk
   holy_shock_ready: cooldown.holy_shock.charges>=1
   hp_capped: holy_power>=5
@@ -110,8 +110,7 @@ lists:
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<40&var.infusion_of_light
 
   holy_armaments:
-    - holy_bulwark,cycle=tanks,if=!var.sacred_weapon_on_player&health.pct<95
-    - sacred_weapon,range_check=none,if=player.standing.time>2&!var.holy_bulwark_on_tank
+    - holy_bulwark,delay=900,cycle=tanks,if=!var.sacred_weapon_on_player&health.pct<98&!var.holy_bulwark_on_tank
 
   major_cooldowns:
     - avenging_wrath,if=group.count(cycle.health.effective.pct<70)>=2&!buff.aura_mastery.up
