@@ -1,15 +1,15 @@
-version: "1.0.2"
+version: "1.0.3"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
 author: "Khan"
 date: "2026-04-16"
-patch: "12.0.1"
+patch: "12.0.5"
 movement_allowed: true
 
 config:
   aoe_threshold:
-    section: "Profile v1.0.2 No-Apex M+"
+    section: "Profile v1.0.3 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -111,6 +111,7 @@ variables:
   group_critical: group.lowest.health.effective.pct<50
   group_needs_cd: group.lowest.health.effective.pct<config.cooldown_threshold
   group_needs_conduit: group.lowest.health.effective.pct<config.celestial_conduit_threshold
+  stopsoothing: player.casting.soothing_mist&target.health.pct>=90
 
 lists:
 
@@ -147,6 +148,7 @@ lists:
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40&!player.moving
     - vivify,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40&!player.moving
   soothing_mist_channel:
+    - stop_casting,interrupt=true,if=var.stopsoothing
     - vivify,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=!var.has_sheiluns_gift&group.lowest.health.effective.pct<25&group.lowest.range<=40
     - sheiluns_gift,casting_check=soothing_mist,ignore_usable=true,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<25&group.lowest.range<=40
     - enveloping_mist,casting_check=soothing_mist,ignore_usable=true,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.melee_weave_hp&cycle.range<=40
