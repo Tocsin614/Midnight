@@ -1,4 +1,4 @@
-version: 4.0.7
+version: 4.0.8
 author: Khan
 spec: 256
 name: Khan Discipline Priest
@@ -9,7 +9,7 @@ movement_allowed: true
 
 config:
   pain_suppression_threshold:
-    section: "v4.0.7"
+    section: "v4.0.8"
     label: "Pain Suppression HP %"
     type: slider
     min: 10
@@ -239,11 +239,11 @@ lists:
   major_cooldowns:
     - evangelism,if=group.count(cycle.health.effective.pct<65)>=3
     - power_infusion,if=group.count(cycle.health.effective.pct<=50)>=2
-    - power_infusion,cycle=dps,if=(buff.bloodlust.up|var.evangelism_window)
     - power_infusion,cycle=dps,if=cycle.buff.power_infusion.down&cycle.range>0&cycle.range<=40&((cycle.buff.avatar.remains>15)|(cycle.buff.recklessness.remains>8)|((cycle.buff.demonic_art_overlord.up|cycle.buff.demonic_art_mother_of_chaos.up|cycle.buff.demonic_art_pitlord.up)&cycle.buff.malevolence.remains>10)|(cycle.buff.tyrants_oblation.remains>10)|(cycle.buff.malevolence.remains>15)|(cycle.buff.ascendance.remains>10)|(cycle.buff.shadow_blades.remains>12)|(cycle.buff.adrenaline_rush.remains>10)|(cycle.buff.deathmark.remains>10&cycle.buff.kingsbane.remains>10)|(cycle.buff.voidform.remains>15)|(cycle.buff.avenging_wrath.remains>15)|(cycle.buff.courage_of_the_white_tiger.remains>29)|(cycle.buff.combustion.remains>8)|(cycle.buff.arcane_surge.remains>14)|(cycle.buff.takedown.remains>6)|(cycle.buff.trueshot.remains>10)|(cycle.buff.bestial_wrath.remains>10|cycle.buff.bloodshed.remains>10)|(cycle.buff.dragonrage.remains>10)|(cycle.buff.incarnation_avatar_of_ashamane.remains>10|cycle.buff.berserk.remains>10)|(cycle.buff.incarnation_chosen_of_elune.remains>10|cycle.buff.celestial_alignment.remains>10)|(cycle.buff.void_metamorphosis.remains>10)|(cycle.buff.metamorphosis.remains>10)|(cycle.buff.army_of_the_dead.remains>10)|(cycle.buff.pillar_of_frost.remains>10|cycle.buff.breath_of_sindragosa.remains>7))
+    - power_infusion,cycle=dps,if=(buff.bloodlust.up&var.evangelism_window)
     - shadowfiend
     - power_word_barrier,if=group.count(cycle.health.effective.pct<40)>=3
-    - ultimate_penitence,if=group.count(cycle.health.effective.pct<45)>=config.ultimate_penitence_members&!var.evangelism_window&group.count(cycle.buff.atonement.up)>=2
+    - ultimate_penitence,if=group.count(cycle.health.effective.pct<60)>=config.ultimate_penitence_members&!var.evangelism_window&group.count(cycle.buff.atonement.up)>=2
 
   high_priority_healing:
     - shadow_mend.focus_mouseover,interrupt=true,range_check=mouseover,if=config.mouseover_enabled&var.mo_friendly_valid&talent.shadow_mend&mouseover.health.effective.pct<config.shadow_mend_threshold
@@ -252,7 +252,7 @@ lists:
     - desperate_prayer,if=health.pct<35
     - desperate_prayer,if=defensives.ready&health.pct<70
     - power_word_shield,target=lowest,if=cycle.health.effective.pct<85&cycle.buff.power_word_shield.down
-    - fade,if=target.threat>=3|config.auto_fade
+    - fade,if=target.threat>=3&config.auto_fade
     - shadow_mend,target=lowest,interrupt=true,if=talent.shadow_mend&group.lowest.health.effective.pct<config.shadow_mend_threshold&group.lowest.range>0&group.lowest.range<=40
     - penance,target=lowest,interrupt=true,if=cycle.health.effective.pct<60&var.penance_ready
     - flash_heal,cycle=members,interrupt=true,if=cycle.health.effective.pct<55&var.surge_of_light_active
