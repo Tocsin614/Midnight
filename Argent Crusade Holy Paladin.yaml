@@ -1,6 +1,7 @@
 version: "3.2.1"
 author: Khan
 spec: 65
+blocked: true
 name: Argent Crusade Holy Paladin
 movement_allowed: true
 description: |
