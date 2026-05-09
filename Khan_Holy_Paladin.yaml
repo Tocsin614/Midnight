@@ -390,12 +390,8 @@ lists:
     - holy_shock.mouseover,if=config.mouseover_spells.has(2)&mouseover.health.effective.pct<config.holy_shock_hp&var.holy_shock_ready
     - flash_of_light.mouseover,if=config.mouseover_spells.has(3)&mouseover.health.effective.pct<config.flash_of_light_hp
   trinkets:
-    - trinket_1,if=var.trinket1_living_silk&trinket_1.ready&(var.in_burst|var.group_emergency)
-    - trinket_2,if=var.trinket2_living_silk&trinket_2.ready&(var.in_burst|var.group_emergency)
-    - trinket_1,if=!var.trinket1_living_silk&trinket_1.ready&trinket_1.sync
-    - trinket_2,if=!var.trinket2_living_silk&trinket_2.ready&trinket_2.sync
-    - trinket_1,if=!var.trinket1_living_silk&trinket_1.ready&var.group_emergency
-    - trinket_2,if=!var.trinket2_living_silk&trinket_2.ready&var.group_emergency
+    - trinket_1,if=trinket_1.sync
+    - trinket_2,if=trinket_2.sync
   spenders:
     - eternal_flame,target=lowest,if=var.el_proc&var.has_eternal_flame
     - word_of_glory,target=lowest,if=var.el_proc&!var.has_eternal_flame
