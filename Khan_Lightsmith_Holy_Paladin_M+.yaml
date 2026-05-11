@@ -1,4 +1,4 @@
-version: "1.0.7"
+version: "1.0.8"
 author: Khan
 spec: 65
 name: Lightsmith Holy Paladin M+
@@ -7,7 +7,7 @@ description: "Holy Paladin M+ Lightsmith"
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "Lightsmith Holy Paladin M+ v1.0.7  Use Holy Paladin - Wowhead / Herald of the Sun for Raids"
+    section: "Lightsmith Holy Paladin M+ v1.0.8  Use Holy Paladin - Wowhead / Herald of the Sun for Raids"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -98,7 +98,7 @@ lists:
 
   emergency:
     - divine_shield,range_check=none,interrupt=true,if=health.pct<config.divine_shield
-    - lay_on_hands.focus,range_check=focus,interrupt=true,if=focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.lay_on_hands&focus.range<=40&player.combat&cooldown.lay_on_hands.ready
+    - lay_on_hands.focus,range_check=focus,interrupt=true,use_off_gcd=1,if=focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.lay_on_hands&focus.range<=40&player.combat&cooldown.lay_on_hands.ready
     - divine_protection,range_check=none,if=health.pct<config.divine_protection
     - blessing_of_sacrifice,cycle=tanks,if=cycle.health.effective.pct<config.blessing_of_sacrifice&health.pct>40
     - word_of_glory,cycle=members,if=cycle.health.effective.pct<40&var.hp_spendable
