@@ -8,6 +8,8 @@
 
 ***No Apex Guardian Druid***
 Build: CgGA8cL7tpvige+kkmGM9zUPWDAAAAAAAAAAAgZmZmFzMjZWMLm5BmZZZgZbGGNRmZWMzMzsMmZAAAAAwAjNzALbzMYMLDgpmZZWmZmBAwGmBwixwAzilNAzMzsBA
+
+
 Stats are Haste then verse = crit then mastery. Technically mastery is more defensive if you really want it but I'd go haste/verse or even crit/verse if my ping doesn't allow more globals
 
 Perfect rotation following the guy who originated this build in beta and still playing it before and after buff.
