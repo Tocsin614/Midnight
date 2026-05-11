@@ -1,4 +1,4 @@
-version: "1.0.3"
+version: "1.0.4"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -9,7 +9,7 @@ movement_allowed: true
 
 config:
   aoe_threshold:
-    section: "Profile v1.0.3 No-Apex M+"
+    section: "Profile v1.0.4 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -129,7 +129,7 @@ lists:
     - quaking_palm,if=interrupt.cc.check
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.vv_proc_hp&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.vv_proc_hp&group.lowest.range<=40
-    - life_cocoon.focus,range_check=focus,interrupt=true,if=config.use_life_cocoon&focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.life_cocoon_threshold&focus.range<=40&player.combat&cooldown.life_cocoon.ready
+    - life_cocoon.focus,range_check=focus,interrupt=true,use_off_gcd=1,if=config.use_life_cocoon&focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.life_cocoon_threshold&focus.range<=40&player.combat&cooldown.life_cocoon.ready
     - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
     - rising_sun_kick
