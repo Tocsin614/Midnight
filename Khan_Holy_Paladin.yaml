@@ -1,4 +1,4 @@
-version: "2.0.2"
+version: "2.0.3"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun"
@@ -9,7 +9,7 @@ movement_allowed: true
 entry: main
 config:
   lay_on_hands_hp:
-    section: "Profile v2.0.2 Raid Only (Herald of the Sun) Use Lightsmith for Mythic+"
+    section: "Profile v2.0.3 Raid Only (Herald of the Sun) Use Lightsmith for Mythic+"
     label: "Lay on Hands HP %"
     type: slider
     min: 1
@@ -184,7 +184,7 @@ lists:
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<20
   emergency:
     - divine_shield,interrupt=true,if=health.pct<config.divine_shield_hp&!debuff.forbearance.up
-    - lay_on_hands.focus,range_check=focus,interrupt=true,if=focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.lay_on_hands_hp&focus.range<=40&player.combat&cooldown.lay_on_hands.ready
+    - lay_on_hands.focus,range_check=focus,interrupt=true,use_off_gcd=1,if=focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.lay_on_hands_hp&focus.range<=40&player.combat&cooldown.lay_on_hands.ready
     - divine_protection,if=health.pct<config.divine_protection_hp&cooldown.divine_protection.ready
     - blessing_of_sacrifice,cycle=tanks,if=cycle.health.effective.pct<config.blessing_of_sacrifice_hp&health.pct>config.bos_self_hp
     - light_of_dawn,range_check=none,if=var.hp_capped&var.group_emergency
@@ -229,7 +229,7 @@ lists:
     - judgment,if=cooldown.judgment.ready&target.enemy&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&target.enemy&!var.group_needs_healing
   mouseover_friendly:
-    - lay_on_hands.mouseover,if=config.mouseover_spells.has(0)&mouseover.health.effective.pct<config.lay_on_hands_hp
+    - lay_on_hands.mouseover,use_off_gcd=1,if=config.mouseover_spells.has(0)&mouseover.health.effective.pct<config.lay_on_hands_hp
     - eternal_flame.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<70&var.hp_spendable&var.has_eternal_flame
     - word_of_glory.mouseover,if=config.mouseover_spells.has(1)&mouseover.health.effective.pct<70&var.hp_spendable&!var.has_eternal_flame
     - holy_shock.mouseover,if=config.mouseover_spells.has(2)&mouseover.health.effective.pct<95&var.holy_shock_ready
