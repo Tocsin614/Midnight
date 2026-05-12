@@ -1,4 +1,4 @@
-version: "1.0.8"
+version: "1.0.9"
 author: Khan
 spec: 65
 name: Lightsmith Holy Paladin M+
@@ -7,7 +7,7 @@ description: "Holy Paladin M+ Lightsmith"
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "Lightsmith Holy Paladin M+ v1.0.8  Use Holy Paladin - Wowhead / Herald of the Sun for Raids"
+    section: "Lightsmith Holy Paladin M+ v1.0.9  Use Holy Paladin - Wowhead / Herald of the Sun for Raids"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -86,7 +86,7 @@ variables:
 lists:
 
   out_of_combat:
-    - rite_of_sanctification,range_check=none,if=!buff.433550.up
+    - rite_of_sanctification,range_check=none,if=!buff.433550.up&lastcast.rite_of_sanctification>=10
     - devotion_aura,if=buff.devotion_aura.down
     - beacon_of_light,cycle=tanks,if=group.count(cycle.buff.beacon_of_light.up)=0&cycle.range>0&cycle.range<=40
     - beacon_of_faith,cycle=dps,if=talent.beacon_of_faith.enabled&group.count(cycle.buff.beacon_of_faith.up)=0&cycle.range>0&cycle.range<=40
@@ -109,8 +109,8 @@ lists:
     - holy_bulwark,delay=900,cycle=tanks,if=!var.sacred_weapon_on_player&health.pct<98&!var.holy_bulwark_on_tank
 
   major_cooldowns:
-    - avenging_wrath,if=group.count(cycle.health.effective.pct<70)>=2&!buff.aura_mastery.up
-    - avenging_crusader,if=target.health.pct>30&player.standing.time>2
+    - avenging_wrath,if=talent.avenging_wrath&group.count(cycle.health.effective.pct<70)>=2&!buff.aura_mastery.up
+    - avenging_crusader,if=talent.avenging_crusader&target.health.pct>30&player.standing.time>2
     - aura_mastery,if=(group.count(cycle.health.effective.pct<50)>=3|group.count(cycle.health.effective.pct<=45)>=2)&!var.avenging_wrath_active
 
   trinkets:
@@ -141,9 +141,9 @@ lists:
     - holy_light.mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<config.flash_of_light
 
   moving:
-    - holy_shock,cycle=members,if=cycle.health.effective.pct<config.holy_shock&var.holy_shock_ready
+    - holy_shock,target=lowest,if=cycle.health.effective.pct<config.holy_shock&var.holy_shock_ready
     - flash_of_light,interrupt=true,target=lowest,if=var.infusion_of_light&group.lowest.health.effective.pct<config.flash_of_light
-    - word_of_glory,cycle=members,if=var.hp_spendable&cycle.health.effective.pct<config.word_of_glory
+    - word_of_glory,target=lowest,if=var.hp_spendable&cycle.health.effective.pct<config.word_of_glory
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
     - judgment,if=holy_power.deficit>=1
     - hammer_of_wrath,if=holy_power.deficit>=1
@@ -187,10 +187,8 @@ lists:
   damage_window:
     - return,if=var.group_needs_healing
     - judgment,if=holy_power.deficit>=1
-    - consecration,if=!buff.consecration.up&player.standing.time>3
     - holy_shock,if=var.holy_shock_ready&holy_power.deficit>=1&target.enemy
     - shield_of_the_righteous,if=var.hp_spendable
-    - word_of_glory,target=lowest,if=var.hp_spendable
     - hammer_of_wrath,if=holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&target.enemy
 
