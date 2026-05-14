@@ -1,4 +1,4 @@
-version: "3.2.2"
+version: "3.2.3"
 author: Khan
 spec: 65
 name: Argent Crusade Holy Paladin
@@ -8,7 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "v3.2.2 Mythic+ focused"
+    section: "v3.2.3 Mythic+ focused"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -258,6 +258,7 @@ lists:
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
     - return,if=player.channeling
+    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&group.lowest.health.effective.pct<config.divine_toll
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
