@@ -86,7 +86,7 @@ variables:
   empyrean_legacy: buff.empyrean_legacy.up
   group_critical: group.count(cycle.health.effective.pct<30)>=1
   group_emergency: group.count(cycle.health.effective.pct<50)>=2
-  group_needs_healing: group.count(cycle.health.effective.pct<85)>=2
+  group_needs_healing: group.count(cycle.health.effective.pct<80)>=2
   hand_of_divinity_active: buff.hand_of_divinity.up
   has_eternal_flame: talent.eternal_flame
   holy_bulwark_ready: cooldown.holy_bulwark.ready
