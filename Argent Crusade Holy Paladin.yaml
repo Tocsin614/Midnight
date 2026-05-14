@@ -1,4 +1,4 @@
-version: "3.2.3"
+version: "3.2.4"
 author: Khan
 spec: 65
 name: Argent Crusade Holy Paladin
@@ -8,7 +8,7 @@ description: |
 entry: main
 config:
   auto_beacon_of_savior:
-    section: "v3.2.3 Mythic+ focused"
+    section: "v3.2.4 Mythic+ focused"
     label: "Beacon of the Savior (auto, lowest hp)"
     type: checkbox
     default: true
@@ -131,7 +131,7 @@ lists:
     - avenging_wrath,if=group.count(cycle.health.effective.pct<70)>=2
     - avenging_crusader,if=group.count(cycle.health.effective.pct<70)>=2
     - aura_mastery,if=group.count(cycle.health.effective.pct<60)>=3|group.count(cycle.health.effective.pct<=50)>=2
-    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&group.lowest.health.effective.pct<config.divine_toll
+    - divine_toll,range_check=none,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&group.lowest.health.effective.pct<config.divine_toll
     - beacon_of_virtue,if=group.count(cycle.health.effective.pct<85)>=config.beacon_of_virtue&var.hp_spendable&var.avenging_wrath_active
     - beacon_of_virtue,if=group.count(cycle.health.effective.pct<70)>=2&var.hp_spendable
     - tyrs_deliverance,if=var.tyrs_deliverance_ready&var.group_needs_healing
@@ -258,7 +258,7 @@ lists:
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
     - return,if=player.channeling
-    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&group.lowest.health.effective.pct<config.divine_toll
+    - divine_toll,range_check=none,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&group.lowest.health.effective.pct<config.divine_toll
     - call_action_list,name=emergency
     - call_action_list,name=major_cooldowns
     - call_action_list,name=racial_defensive
