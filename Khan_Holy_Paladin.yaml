@@ -196,7 +196,7 @@ lists:
     - avenging_wrath,if=!var.has_ac&var.avenging_wrath_ready&var.aw_condition
     - avenging_crusader,if=var.has_ac&cooldown.avenging_crusader.ready&!var.in_ac&var.aw_condition
     - aura_mastery,if=cooldown.aura_mastery.ready&var.am_condition
-    - divine_toll,target=lowest,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&(config.dt_on_cooldown|(group.lowest.health.effective.pct<config.dt_hp_threshold&group.count(cycle.health.effective.pct<config.dt_hp_threshold)>=config.dt_injured_count))
+    - divine_toll,range_check=none,interrupt=true,if=cooldown.divine_toll.ready&holy_power<=1&(config.dt_on_cooldown|(group.lowest.health.effective.pct<config.dt_hp_threshold&group.count(cycle.health.effective.pct<config.dt_hp_threshold)>=config.dt_injured_count))
     - holy_prism,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&target.enemy
     - holy_prism,target=lowest,if=var.has_holy_prism&holy_power<=2&cooldown.holy_prism.ready&var.group_needs_healing&!target.enemy
     - beacon_of_virtue,target=lowest,if=var.has_bov&cooldown.beacon_of_virtue.ready&var.bov_condition&var.hp_spendable
