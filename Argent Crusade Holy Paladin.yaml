@@ -171,8 +171,7 @@ lists:
     - light_of_dawn,if=var.sun_sear_active&var.hp_spendable&group.count(cycle.health.effective.pct<config.word_of_glory)>=2
     - light_of_dawn,if=var.suns_avatar_active&var.hp_spendable&group.count(cycle.health.effective.pct<config.word_of_glory)>=2
     - light_of_dawn,if=!var.beacon_of_virtue_active&group.count(cycle.health.effective.pct<config.word_of_glory)>=2&var.hp_spendable&!var.hp_pool_for_toll
-    - shield_of_the_righteous,if=var.hp_capped
-    - shield_of_the_righteous,if=var.hp_spendable&!var.hp_pool_for_toll
+    - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing&target.exists&target.enemy&target.range<=5
   dawnlight_maintenance:
     - holy_prism,if=cooldown.holy_prism.ready
   generators:
@@ -181,7 +180,7 @@ lists:
     - holy_light,cycle=members,if=var.divine_favor_active&var.infusion_of_light&cycle.health.effective.pct<80
     - holy_shock,cycle=members,if=var.tyrs_deliverance_active&cycle.health.effective.pct<90&var.holy_shock_ready
     - holy_shock,cycle=members,if=var.rising_sunlight_active&var.holy_shock_ready&cycle.health.effective.pct<config.holy_shock
-    - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
+    - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing&target.exists&target.enemy&target.range<=5
     - judgment,if=var.righteous_judgment&holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&holy_power.deficit>=1
     - judgment,if=holy_power.deficit>=1
@@ -220,7 +219,7 @@ lists:
     - word_of_glory,cycle=members,if=var.hp_spendable&cycle.health.effective.pct<config.word_of_glory
     - eternal_flame,cycle=members,if=var.hp_spendable&cycle.health.effective.pct<config.word_of_glory
     - light_of_dawn,if=group.count(cycle.health.effective.pct<85)>=2&var.hp_spendable
-    - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
+    - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing&target.exists&target.enemy&target.range<=5
     - judgment,if=holy_power.deficit>=1
     - hammer_of_wrath,if=holy_power.deficit>=1
     - holy_shock,if=var.holy_shock_ready&!var.group_needs_healing
