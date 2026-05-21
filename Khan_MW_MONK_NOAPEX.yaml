@@ -1,4 +1,4 @@
-version: "1.1.0"
+version: "1.1.1"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -11,15 +11,27 @@ config:
   recommended_talents:
     section: "Talents"
     type: copy_text        # aliases: copy, copytext, copy-text
-    label: "Recommended Talent String"
+    label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.0 No-Apex M+"
+    section: "Profile v1.1.1 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
     max: 10
     default: 3
+  use_spin_to_win:
+    section: "Melee Weave"
+    type: checkbox
+    label: "Spin to Win priority SCK when enough enemies in range"
+    default: true
+  spin_to_win_threshold:
+    section: "Melee Weave"
+    type: slider
+    label: "Spin to Win min enemies in 8y"
+    min: 5
+    max: 20
+    default: 10
   renm_mob_threshold:
     section: "Melee Weave"
     type: slider
@@ -64,7 +76,7 @@ config:
     label: "Melee Weave Above HP%"
     min: 1
     max: 100
-    default: 65
+    default: 60
   ancient_teachings_hp:
     section: "Melee Weave"
     type: slider
@@ -78,7 +90,7 @@ config:
     label: "Instant Sheiluns Gift HP%"
     min: 1
     max: 100
-    default: 70
+    default: 75
   fortifying_brew_hp:
     section: "Defensives"
     type: slider
@@ -116,6 +128,8 @@ variables:
   tft_ready: cooldown.thunder_focus_tea.ready
   tft_capped: cooldown.thunder_focus_tea.charges=cooldown.thunder_focus_tea.max_charges
   melee_weave_ok: group.lowest.health.effective.pct>=config.melee_weave_hp
+  # Spin to Win: group safe (>80%), tank not critical (>60%), enough enemies to justify the channel
+  spin_to_win_ok: config.use_spin_to_win&enemies.combat.8y>=config.spin_to_win_threshold&group.lowest.health.effective.pct>=80&group.tanks.lowest.health.effective.pct>=60
   group_needs_at: group.count(cycle.health.effective.pct<config.ancient_teachings_hp)>=2
   renm_ok: enemies.combat.8y<config.renm_mob_threshold&group.lowest.health.effective.pct<90
   group_critical: group.lowest.health.effective.pct<50
@@ -144,6 +158,7 @@ lists:
     - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
     - rising_sun_kick
+    - spinning_crane_kick,if=var.spin_to_win_ok&target.exists&target.enemy&target.range<=8
     - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
     - thunder_focus_tea,range_check=none,if=var.tft_ready
@@ -194,7 +209,6 @@ lists:
     - call_action_list,name=noapex_hotjs,if=var.hotjs_active
     - renewing_mist,cycle=members,if=!buff.thunder_focus_tea.up&var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_ok
     - renewing_mist,if=!buff.thunder_focus_tea.up&var.renm_capped&var.renm_ok
-    - enveloping_mist,cycle=tanks,if=!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<95&cycle.range<=40&enemies.combat.8y>4&!player.moving
     - invoke_chiji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chiji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
     - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.effective.pct>85&!player.channeling
