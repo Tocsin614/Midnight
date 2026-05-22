@@ -255,8 +255,6 @@ lists:
     - renewing_mist,if=var.renm_capped
     - enveloping_mist,cycle=members,if=!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
-    # TFT after EnvM/ReM spread: fires a TFT-buffed ReM that feeds Rising Mist extensions
-    # on Yu'lon's Enveloping Mist — use it as soon as the initial spread is done, not last
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.range<=40
@@ -266,9 +264,6 @@ lists:
     - enveloping_mist,cycle=members,if=var.sox_proc&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<config.heal_threshold&cycle.range<=40
 
   cotc_raid_hotjs:
-    # TFT FIRST: during HotJS (active throughout Celestial Conduit), TFT → ReM triggers
-    # Flowing Wisdom — the buffed ReM bounces to an extra target. This is the core CotC ramp
-    # mechanic and must fire at the very start of the window, not after everything else.
     - thunder_focus_tea,range_check=none,if=var.tft_ready&var.renm_has_charge
     - renewing_mist,cycle=members,if=!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
     - renewing_mist,if=var.renm_capped
