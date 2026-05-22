@@ -1,4 +1,4 @@
-version: 4.0.8
+version: 4.1.1
 author: Khan
 spec: 256
 name: Khan Discipline Priest
@@ -8,8 +8,13 @@ description: |
 movement_allowed: true
 
 config:
+  recommended_talents:
+    section: "Talents"
+    type: copy_text        # aliases: copy, copytext, copy-text
+    label: "Recommended Talent String for pugs. Highest mana Return for a mana hungry class"
+    text: "CAQA4VPTJ8eQb8/qEm8PyGu4yADsYYWmZMmZmhZbGzMDjZGAAAAAAAAAAjZWmBzMzwMmZwmpZiBYmFMEGzyAMGsAAAjZGjBzAMzMywA"
   pain_suppression_threshold:
-    section: "v4.0.8"
+    section: "v4.1.1"
     label: "Pain Suppression HP %"
     type: slider
     min: 10
@@ -126,103 +131,6 @@ variables:
   group_needs_healing: group.count(cycle.health.effective.pct<70)>=2
   group_heavy_damage: group.count(cycle.health.effective.pct<50)>=2
 
-  # --- ALGETH'AR ACADEMY ---
-  spell_energy_bomb: 374350               # Magic - interruptible
-  spell_savage_peck: 376997               # Bleed - stacking
-  spell_peck: 377344                      # Bleed
-  spell_raging_screech: 377389            # Enrage - interruptible
-  spell_monotonous_lecture: 388392        # Magic - interruptible
-  spell_lasher_toxin: 389033              # Poison
-  spell_agitation: 390938                 # Enrage
-  spell_oversurge: 391977                 # Magic
-  spell_splinterbark: 396716              # Bleed
-  spell_vile_bite: 1282244                # Bleed
-
-  # --- MAGISTER'S TERRACE ---
-  spell_polymorph: 468966                 # Magic - CC!
-  spell_ethereal_shackles: 1214038        # Magic - chains player, PRIORITY DISPEL
-  spell_void_torrent: 1214714             # Magic
-  spell_devouring_entropy: 1215897        # Magic
-  spell_consuming_void: 1245068           # Magic
-  spell_hastening_ward: 1248689           # Magic - buff/purge target
-  spell_arcane_blade: 1252909             # Magic
-  spell_holy_fire: 1255187                # Magic
-  spell_void_surge: 1264693               # Magic
-  spell_arcane_blade_2: 1265561           # Magic
-  spell_umbral_splinters: 1284627         # Magic
-  spell_ethereal_shackles_2: 1282055      # Magic
-
-  # --- MAISARA CAVERNS ---
-  spell_infected_pinions: 1246666         # Disease - stacking
-  spell_cries_of_fallen: 1254175          # Magic
-  spell_blood_frenzy: 1255765             # Enrage
-  spell_hex: 1256008                      # Magic - CC! PRIORITY DISPEL
-  spell_spirit_rend: 1259255              # Magic
-  spell_cries_of_fallen_2: 1259731        # Magic
-  spell_vilebranch_sting: 1260709         # Poison
-  spell_ritual_firebrand: 1262411         # Magic
-  spell_grim_ward: 1270079                # Magic
-  spell_frost_nova: 1271623               # Magic - CC!
-  spell_hooked_snare: 1266381             # Bleed - roots player
-  spell_open_wound: 1266488               # Bleed - stacking
-
-  # --- NEXUS-POINT XENAS ---
-  spell_crimson_glaive: 1216502           # Bleed
-  spell_bad_omens: 1217882                # Curse
-  spell_razor_dive: 1238439               # Bleed
-  spell_transference: 1249815             # Magic
-  spell_holy_echo: 1263783                # Magic
-  spell_burning_radiance: 1277557         # Magic
-  spell_creeping_void: 1281636            # Curse
-
-  # --- PIT OF SARON ---
-  spell_immolate: 157736                  # Magic
-  spell_curse_of_torment: 1258434         # Curse
-  spell_permeating_cold: 1258437          # Magic
-  spell_necromantic_infusion: 1258448     # Magic
-  spell_rotting_strikes: 1258459          # Disease - stacking
-  spell_torrent_of_misery: 1258826        # Magic
-  spell_plague_frenzy: 1259132            # Enrage
-  spell_cryoshards: 1261921               # Magic
-  spell_rotting_strikes_2: 1262930        # Disease
-  spell_shadowbind: 1264186               # Curse
-
-  # --- SEAT OF THE TRIUMVIRATE ---
-  spell_grievous_wound: 240559            # Bleed - stacking tank debuff
-  spell_howling_dark: 244751              # Magic
-  spell_shadow_pounce: 245742             # Bleed
-  spell_corrupting_touch: 245748          # Magic
-  spell_backstab: 1262519                 # Bleed
-  spell_abyssal_enhancement: 1262526      # Magic
-  spell_rift_essence: 1280330             # Magic
-  spell_battle_rage: 1264036              # Enrage
-
-  # --- SKYREACH ---
-  spell_fan_of_blades: 153757             # Bleed
-  spell_blade_rush: 1254475               # Bleed
-  spell_rushing_winds: 1254670            # Magic
-  spell_wrathful_wind: 1254678            # Enrage
-  spell_solar_barrier: 1273356            # Magic
-
-  # --- WINDRUNNER SPIRE ---
-  spell_throw_axe: 468659                 # Bleed - GRIPS player!
-  spell_reckless_leap: 472054             # Bleed
-  spell_poison_blades: 473795             # Poison
-  spell_curse_of_darkness: 1215803        # Curse
-  spell_soul_torment: 1216298             # Magic
-  spell_ephemeral_bloodlust: 1216459      # Enrage
-  spell_bolstering_flames: 1216860        # Magic
-  spell_puncturing_bite: 1216985          # Bleed
-  spell_poison_spray: 1216825             # Poison
-  spell_shred_flesh: 1253739              # Bleed
-  spell_curse_of_darkness_2: 1253834      # Curse
-
-  dangerous_magic_debuff: cycle.debuff.spell_1214038.up|cycle.debuff.spell_1215897.up|cycle.debuff.spell_468966.up|cycle.debuff.spell_1256008.up|cycle.debuff.spell_1271623.up|cycle.debuff.spell_244751.up|cycle.debuff.spell_1248689.up|cycle.debuff.spell_1273356.up
-  dangerous_bleed_debuff: cycle.debuff.spell_240559.up|cycle.debuff.spell_1266488.up|cycle.debuff.spell_468659.up|cycle.debuff.spell_1216502.up|cycle.debuff.spell_1253739.up|cycle.debuff.spell_1254475.up|cycle.debuff.spell_1262519.up|cycle.debuff.spell_245742.up|cycle.debuff.spell_376997.up|cycle.debuff.spell_1238439.up|cycle.debuff.spell_472054.up|cycle.debuff.spell_1216985.up|cycle.debuff.spell_1266381.up|cycle.debuff.spell_153757.up|cycle.debuff.spell_1282244.up
-  dangerous_poison_debuff: cycle.debuff.spell_389033.up|cycle.debuff.spell_473795.up|cycle.debuff.spell_1216825.up|cycle.debuff.spell_1260709.up
-  dangerous_curse_debuff: cycle.debuff.spell_1215803.up|cycle.debuff.spell_1217882.up|cycle.debuff.spell_1253834.up|cycle.debuff.spell_1281636.up
-  dangerous_nondispelable: var.dangerous_bleed_debuff|var.dangerous_poison_debuff|var.dangerous_curse_debuff
-  has_dangerous_debuff: var.dangerous_magic_debuff|var.dangerous_nondispelable
 
 
 lists:
@@ -265,34 +173,32 @@ lists:
     - power_word_shield,if=target.casting.targeting_me&buff.power_word_shield.down
     - power_word_shield,if=casting_target.buff.power_word_shield.down&casting_target.health.pct<90
 
-  reactive_shields:
-    # Bleeds — Algeth'ar Academy
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_376997.up&cycle.debuff.spell_376997.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_396716.up&cycle.debuff.spell_396716.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1282244.up&cycle.debuff.spell_1282244.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Bleeds — Maisara Caverns
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1266381.up&cycle.debuff.spell_1266381.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1266488.up&cycle.debuff.spell_1266488.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Bleeds — Nexus-Point Xenas
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1216502.up&cycle.debuff.spell_1216502.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1238439.up&cycle.debuff.spell_1238439.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Bleeds — Seat of the Triumvirate
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_240559.up&cycle.debuff.spell_240559.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_245742.up&cycle.debuff.spell_245742.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1262519.up&cycle.debuff.spell_1262519.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Bleeds — Skyreach
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_153757.up&cycle.debuff.spell_153757.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1254475.up&cycle.debuff.spell_1254475.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Bleeds — Windrunner Spire
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_468659.up&cycle.debuff.spell_468659.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_472054.up&cycle.debuff.spell_472054.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1216985.up&cycle.debuff.spell_1216985.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1253739.up&cycle.debuff.spell_1253739.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    # Poison — shield absorbs damage while awaiting dispel
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_389033.up&cycle.debuff.spell_389033.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_473795.up&cycle.debuff.spell_473795.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1216825.up&cycle.debuff.spell_1216825.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
-    - power_word_shield,cycle=members,if=cycle.debuff.spell_1260709.up&cycle.debuff.spell_1260709.remains>2&cycle.buff.power_word_shield.down&cycle.range>0&cycle.range<=40
+  encounter_shields:
+    # ============================================================================================
+    # Proactive shielding driven by encounter timeline (BigWigs / DBM events).
+    # Severity: 0 = low / movement cue (skip), 1 = medium damage, 2 = deadly / heavy damage.
+    # Severity 2 gets an 8-second prep window so every affected role is covered before the hit.
+    # Severity 1 gets a 5-second window — meaningful damage but more time to react.
+    # Tanks are always shielded first (they take the hardest initial hit), then healers, then DPS.
+    # ============================================================================================
+
+    # TANK incoming
+    # Deadly (sev 2) — 8s out: get tank shields locked in early
+    - power_word_shield,cycle=tanks,if=encounter.next_tank.remains<8&encounter.next_tank.severity=2&cycle.buff.power_word_shield.down&cycle.range<=40
+    # Medium (sev 1) — 5s out
+    - power_word_shield,cycle=tanks,if=encounter.next_tank.remains<5&encounter.next_tank.severity=1&cycle.buff.power_word_shield.down&cycle.range<=40
+
+    # HEALER incoming
+    # Deadly (sev 2) — 8s out
+    - power_word_shield,cycle=healers,if=encounter.next_healer.remains<8&encounter.next_healer.severity=2&cycle.buff.power_word_shield.down&cycle.range<=40
+    # Medium (sev 1) — 5s out
+    - power_word_shield,cycle=healers,if=encounter.next_healer.remains<5&encounter.next_healer.severity=1&cycle.buff.power_word_shield.down&cycle.range<=40
+
+    # DPS incoming
+    # Deadly (sev 2) — 8s out
+    - power_word_shield,cycle=dps,if=encounter.next_dps.remains<8&encounter.next_dps.severity=2&cycle.buff.power_word_shield.down&cycle.range<=40
+    # Medium (sev 1) — 5s out
+    - power_word_shield,cycle=dps,if=encounter.next_dps.remains<5&encounter.next_dps.severity=1&cycle.buff.power_word_shield.down&cycle.range<=40
 
   evangelism_burst:
     - power_word_radiance,if=var.evangelism_window&group.count(cycle.health.effective.pct<65)>=3
@@ -399,7 +305,7 @@ lists:
     - call_action_list,name=pain_suppression_logic
     - call_action_list,name=racial_defensive
     - return,if=player.cc
-    - call_action_list,name=reactive_shields
+    - call_action_list,name=encounter_shields
     - call_action_list,name=preemptive_shield
     - call_action_list,name=major_cooldowns
     - petattack,delay=400,if=(pet.mindbender.active|pet.voidwraith.active|pet.shadowfiend.active)&!pet.attacking_target
