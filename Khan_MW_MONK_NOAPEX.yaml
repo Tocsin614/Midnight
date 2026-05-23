@@ -1,4 +1,4 @@
-version: "1.1.1"
+version: "1.1.2"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -14,7 +14,7 @@ config:
     label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.1 No-Apex M+"
+    section: "Profile v1.1.2 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -169,6 +169,10 @@ lists:
     - call_action_list,name=dps_noapex,if=var.melee_weave_ok
 
   out_of_combat:
+    - enveloping_mist,casting_check=any,ignore_usable=true,cycle=members,if=player.channeling&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<100&cycle.range<=40
+    - renewing_mist,cycle=members,if=player.channeling&!buff.thunder_focus_tea.up&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_has_charge
+    - vivify,casting_check=any,ignore_usable=true,target=lowest,if=player.channeling&!var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40
+    - sheiluns_gift,casting_check=any,ignore_usable=true,target=lowest,if=player.channeling&var.has_sheiluns_gift&group.lowest.health.effective.pct<100&group.lowest.range<=40
     - renewing_mist,cycle=members,if=config.renm_prepull&var.renm_has_charge&!cycle.buff.renewing_mist.up&cycle.range<=40
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<100&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<100&group.lowest.range<=40
