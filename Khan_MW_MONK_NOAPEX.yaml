@@ -1,4 +1,4 @@
-version: "1.1.2"
+version: "1.1.3"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -14,7 +14,7 @@ config:
     label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.2 No-Apex M+"
+    section: "Profile v1.1.3 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -39,24 +39,31 @@ config:
     min: 1
     max: 30
     default: 3
-  cooldown_threshold:
+  chiji_hp_threshold:
     section: "Cooldowns"
     type: slider
-    label: "Chi-Ji CD Threshold - group HP%"
-    min: 1
-    max: 100
-    default: 75
+    label: "Chi-Ji - Min group HP% (2+ members below)"
+    min: 30
+    max: 90
+    default: 70
+  chiji_enemies_threshold:
+    section: "Cooldowns"
+    type: slider
+    label: "Chi-Ji - Min enemies in 8y"
+    min: 4
+    max: 15
+    default: 10
   celestial_conduit_threshold:
     section: "Cooldowns"
     type: slider
-    label: "Celestial Conduit Threshold - group HP%"
-    min: 1
-    max: 100
-    default: 50
+    label: "Celestial Conduit Threshold - group HP% (2+ members below)"
+    min: 20
+    max: 80
+    default: 68
   auto_celestials:
     section: "Cooldowns"
     type: checkbox
-    label: "Auto-use Celestial CDs (uncheck for manual timing)"
+    label: "Auto-use Celestial CD (uncheck for manual)"
     value: true
   use_life_cocoon:
     section: "Cooldowns"
@@ -133,8 +140,8 @@ variables:
   group_needs_at: group.count(cycle.health.effective.pct<config.ancient_teachings_hp)>=2
   renm_ok: enemies.combat.8y<config.renm_mob_threshold&group.lowest.health.effective.pct<90
   group_critical: group.lowest.health.effective.pct<50
-  group_needs_cd: group.lowest.health.effective.pct<config.cooldown_threshold
-  group_needs_conduit: group.lowest.health.effective.pct<config.celestial_conduit_threshold
+  group_needs_cd: group.count(cycle.health.effective.pct<config.chiji_hp_threshold)>=2&enemies.combat.8y>=config.chiji_enemies_threshold
+  group_needs_conduit: group.count(cycle.health.effective.pct<config.celestial_conduit_threshold)>=2
   sm_channeling: player.channeling&player.casting.spell_id=115175
 
 lists:
@@ -147,6 +154,9 @@ lists:
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=out_of_combat,if=!player.combat
     - return,if=!player.combat
+    # Celestial Conduit is a 4-sec channel — any cast breaks it. Return here to protect it.
+    # SM channel is excluded (handled by soothing_mist_channel list below).
+    - return,if=player.channeling&!var.sm_channeling
     - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
     - call_action_list,name=soothing_mist_channel,if=var.sm_channeling
     - call_action_list,name=defensives
