@@ -1,4 +1,4 @@
-version: "2.0.3"
+version: "2.0.4"
 spec: 65
 name: "Holy Paladin - Wowhead / Herald of the Sun"
 description: "Wowhead (HolyClarius) | Herald of the Sun"
@@ -9,7 +9,7 @@ movement_allowed: true
 entry: main
 config:
   lay_on_hands_hp:
-    section: "Profile v2.0.3 Raid Only (Herald of the Sun) Use Lightsmith for Mythic+"
+    section: "Profile v2.0.4 Raid Only (Herald of the Sun) Use Lightsmith for Mythic+"
     label: "Lay on Hands HP %"
     type: slider
     min: 1
@@ -238,9 +238,9 @@ lists:
     - trinket_1,if=trinket_1.sync
     - trinket_2,if=trinket_2.sync
   spenders:
-    - light_of_dawn,range_check=none,if=var.hp_capped
-    - light_of_dawn,range_check=none,if=var.dp_proc
-    - light_of_dawn,range_check=none,if=var.hp_spendable&group.count(cycle.health.effective.pct<92)>=2&!var.in_bov
+    - light_of_dawn,range_check=none,if=var.hp_capped&group.count(cycle.health.pct<92)>=2
+    - light_of_dawn,range_check=none,if=var.dp_proc&group.count(cycle.health.pct<92)>=2
+    - light_of_dawn,range_check=none,if=var.hp_spendable&group.count(cycle.health.pct<92)>=2&!var.in_bov
     - eternal_flame,target=lowest,if=var.el_proc&var.has_eternal_flame
     - word_of_glory,target=lowest,if=var.el_proc&!var.has_eternal_flame
     - shield_of_the_righteous,if=var.hp_spendable&!var.group_needs_healing
@@ -256,12 +256,12 @@ lists:
     - judgment,if=var.iof_proc&!var.group_needs_healing&target.enemy
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<20
   member_healing:
-    - light_of_dawn,range_check=none,if=var.hp_spendable&group.count(cycle.health.effective.pct<92)>=2
+    - light_of_dawn,range_check=none,if=var.hp_spendable&group.count(cycle.health.pct<92)>=2
     - holy_shock,interrupt=true,cycle=members,if=var.holy_shock_ready&cycle.health.effective.pct<95
-    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<70
-    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<70
+    - eternal_flame,cycle=members,if=var.hp_spendable&var.has_eternal_flame&cycle.health.effective.pct<95
+    - word_of_glory,cycle=members,if=var.hp_spendable&!var.has_eternal_flame&cycle.health.effective.pct<95
+    - holy_light,cycle=members,if=cycle.health.effective.pct<95&mana.pct>30
     - flash_of_light,cycle=members,if=var.iof_proc&cycle.health.effective.pct<20
-    - holy_light,cycle=members,if=cycle.health.effective.pct<74&mana.pct>30
     - flash_of_light,cycle=members,if=cycle.health.effective.pct<20
   racial_defensive:
     - stoneform,if=player.dispelable.list.stoneform
