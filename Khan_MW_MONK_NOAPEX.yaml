@@ -1,4 +1,4 @@
-version: "1.1.9"
+version: "1.1.12"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -128,6 +128,7 @@ variables:
   has_veil_of_pride: talent.veil_of_pride
   has_endless_draught: talent.endless_draught
   has_refreshment: talent.refreshment
+  has_celestial_harmony: talent.celestial_harmony
   renm_capped: cooldown.renewing_mist.charges>=3
   renm_has_charge: cooldown.renewing_mist.charges>=1
   rsk_ready: cooldown.rising_sun_kick.ready
@@ -214,7 +215,7 @@ lists:
     - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40&!var.chiji_active
     # !player.channeling: won't summon Chi-Ji while CC is active.
     - invoke_chiji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chiji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40&!player.channeling
-    - soothing_mist,cycle=members,if=!player.channeling&cycle.health.effective.pct<50&cycle.range<=40
+    - soothing_mist,cycle=members,if=!player.channeling&!var.chiji_active&cycle.health.effective.pct<50&cycle.range<=40
 
   tank_heal:
     - vivify,target=tanks.lowest,if=!var.has_sheiluns_gift&group.tanks.lowest.health.effective.pct<50&group.tanks.lowest.range<=40&var.vivacious_up
@@ -244,7 +245,12 @@ lists:
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
   noapex_chiji:
-    - enveloping_mist,cycle=members,if=!buff.thunder_focus_tea.up&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<50&cycle.range<=40
+    # Celestial Harmony makes EnvMist instant during Chi-Ji — spread to all members.
+    # Each cast chains a Renewing Mist via Rapid Diffusion automatically.
+    - enveloping_mist,delay=200,cycle=members,if=var.has_celestial_harmony&!buff.thunder_focus_tea.up&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<95&cycle.range<=40
+    # Without Celestial Harmony, EnvMist costs a GCD — only cast on low HP members.
+    - enveloping_mist,delay=200,cycle=members,if=!var.has_celestial_harmony&!buff.thunder_focus_tea.up&!cycle.buff.enveloping_mist.up&cycle.health.effective.pct<50&cycle.range<=40
+    # After EnvMist is spread, continue DPS — Ancient Teachings heals from every melee hit.
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&group.lowest.health.effective.pct<50&group.lowest.range<=40
     - tiger_palm,if=target.exists&target.enemy&target.range<=5
 
