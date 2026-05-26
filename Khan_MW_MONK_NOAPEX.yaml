@@ -1,4 +1,4 @@
-version: "1.1.3"
+version: "1.1.9"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -14,7 +14,7 @@ config:
     label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.3 No-Apex M+"
+    section: "Profile v1.1.8 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -45,45 +45,45 @@ config:
     label: "Chi-Ji - Min group HP% (2+ members below)"
     min: 30
     max: 90
-    default: 70
+    default: 63
   chiji_enemies_threshold:
     section: "Cooldowns"
     type: slider
     label: "Chi-Ji - Min enemies in 8y"
     min: 4
     max: 15
-    default: 10
+    default: 6
   celestial_conduit_threshold:
     section: "Cooldowns"
     type: slider
     label: "Celestial Conduit Threshold - group HP% (2+ members below)"
     min: 20
     max: 80
-    default: 68
+    default: 67
   auto_celestials:
     section: "Cooldowns"
     type: checkbox
     label: "Auto-use Celestial CD (uncheck for manual)"
-    value: true
+    default: true
   use_life_cocoon:
     section: "Cooldowns"
     type: checkbox
     label: "Enable Life Cocoon"
-    value: true
+    default: true
   life_cocoon_threshold:
     section: "Cooldowns"
     type: slider
     label: "Life Cocoon HP% Threshold"
     min: 1
     max: 100
-    default: 55
+    default: 35
   melee_weave_hp:
     section: "Melee Weave"
     type: slider
     label: "Melee Weave Above HP%"
     min: 1
     max: 100
-    default: 60
+    default: 50
   ancient_teachings_hp:
     section: "Melee Weave"
     type: slider
@@ -109,12 +109,12 @@ config:
     section: "Out of Combat"
     label: "Pre-pull Renewing Mist (spread to group)"
     type: checkbox
-    value: true  
+    default: true
 
 variables:
   is_cotc: talent.celestial_conduit
   hotjs_active: buff.heart_of_the_jade_serpent.up
-  chiji_active: buff.invoke_chiji_the_red_crane.up
+  chiji_active: cooldown.invoke_chiji_the_red_crane.remains>=90
   zen_pulse_ready: buff.zen_pulse.stack>=2
   spiritfont_ready: buff.spiritfont.stack>=2
   sox_proc: buff.strength_of_the_black_ox.up
@@ -160,6 +160,10 @@ lists:
     - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
     - call_action_list,name=soothing_mist_channel,if=var.sm_channeling
     - call_action_list,name=defensives
+    - call_action_list,name=emergency_heal
+    # Revival, Chi-Ji, Celestial Conduit all fire here at top priority.
+    # If CC just started channeling, stop the rest of main to protect it.
+    - return,if=player.channeling&!var.sm_channeling
     - leg_sweep,if=interrupt.stun.aoe.check
     - quaking_palm,if=interrupt.cc.check
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.vv_proc_hp&group.lowest.range<=40
@@ -169,11 +173,12 @@ lists:
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
     - rising_sun_kick
     - spinning_crane_kick,if=var.spin_to_win_ok&target.exists&target.enemy&target.range<=8
-    - call_action_list,name=emergency_heal
     - call_action_list,name=cooldowns,if=state.cds
     - thunder_focus_tea,range_check=none,if=var.tft_ready
     - rushing_wind_kick
     - call_action_list,name=noapex_mplus
+    # Guard: if CC just started inside noapex_mplus, stop here — don't let tank/healer/dps lists cancel it
+    - return,if=player.channeling&!var.sm_channeling
     - call_action_list,name=tank_heal
     - call_action_list,name=healer_heal
     - call_action_list,name=dps_noapex,if=var.melee_weave_ok
@@ -204,7 +209,12 @@ lists:
   emergency_heal:
     - revival,interrupt=true,if=!talent.restoral&cooldown.revival.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<35)>=3|(group.tanks.lowest.health.effective.pct<15&cooldown.life_cocoon.down))
     - restoral,if=talent.restoral&cooldown.restoral.ready&group.lowest.range<=40&(group.count(cycle.health.effective.pct<40)>=3|(group.tanks.lowest.health.effective.pct<15&cooldown.life_cocoon.down))
-    - soothing_mist,cycle=members,if=!player.channeling&cycle.health.effective.pct<60&cycle.range<=40
+    # CC fires first — its 4s channel immediately blocks Chi-Ji via !player.channeling below.
+    # !var.chiji_active (cooldown proxy: remains>=90) blocks CC for ~30s after Chi-Ji is summoned.
+    - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40&!var.chiji_active
+    # !player.channeling: won't summon Chi-Ji while CC is active.
+    - invoke_chiji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chiji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40&!player.channeling
+    - soothing_mist,cycle=members,if=!player.channeling&cycle.health.effective.pct<50&cycle.range<=40
 
   tank_heal:
     - vivify,target=tanks.lowest,if=!var.has_sheiluns_gift&group.tanks.lowest.health.effective.pct<50&group.tanks.lowest.range<=40&var.vivacious_up
@@ -223,8 +233,6 @@ lists:
     - call_action_list,name=noapex_hotjs,if=var.hotjs_active
     - renewing_mist,cycle=members,if=!buff.thunder_focus_tea.up&var.renm_capped&!cycle.buff.renewing_mist.up&cycle.range<=40&var.renm_ok
     - renewing_mist,if=!buff.thunder_focus_tea.up&var.renm_capped&var.renm_ok
-    - invoke_chiji_the_red_crane,interrupt=true,if=state.cds&config.auto_celestials&cooldown.invoke_chiji_the_red_crane.ready&var.group_needs_cd&group.lowest.range<=40
-    - celestial_conduit,interrupt=true,if=state.cds&config.auto_celestials&cooldown.celestial_conduit.ready&var.group_needs_conduit&group.lowest.range<=40
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=2&mana.pct<98&group.lowest.health.effective.pct>85&!player.channeling
     - mana_tea,range_check=none,if=buff.mana_tea.stack>=1&buff.mana_tea.stack<=3&!player.channeling
     - blackout_kick,if=buff.teachings_of_the_monastery.stack>=2&target.range<=5
