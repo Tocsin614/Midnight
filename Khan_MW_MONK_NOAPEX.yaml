@@ -14,7 +14,7 @@ config:
     label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.8 No-Apex M+"
+    section: "Profile v1.1.12 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
