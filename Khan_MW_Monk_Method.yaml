@@ -1,8 +1,8 @@
 
-version: "5.0.3"
+version: "5.0.4"
 spec: 270
 name: "Mistweaver Monk Method"
-description: "Midnight 12.0.5 - Method.gg v5.0.3"
+description: "Midnight 12.0.5 - Method.gg v5.0.4"
 author: "Khan"
 date: "2026-03-26"
 patch: "12.0.5"
@@ -12,7 +12,7 @@ movement_allowed: true
 # CONFIG
 config:
   rotation_profile:
-    section: "Profile v5.0.3"
+    section: "Profile v5.0.4"
     type: dropdown
     label: "Rotation Profile"
     options:
@@ -175,8 +175,8 @@ lists:
     - call_action_list,name=cooldowns,if=state.cds
     - touch_of_death,if=target.exists&target.enemy&target.range<=5&target.health.current<player.health.max&cooldown.touch_of_death.ready
     # RSK: keep on CD at all times (Method rule 1). Procs VV for instant SG next line.
-    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy&target.range<=5
-    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy&target.range<=5
+    - rushing_wind_kick,if=var.has_rwk&var.rwk_ready&target.exists&target.enemy
+    - rising_sun_kick,if=var.rsk_ready&target.exists&target.enemy
     # VV proc: instant SG/Vivify after RSK — hold until group needs it (guide: "hold until incoming damage")
     - sheiluns_gift,target=lowest,if=var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.heal_threshold&group.lowest.range<=40
     - vivify,target=lowest,if=!var.has_sheiluns_gift&var.vivacious_up&group.lowest.health.effective.pct<config.heal_threshold&group.lowest.range<=40
