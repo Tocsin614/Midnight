@@ -1,4 +1,4 @@
-version: "1.1.12"
+version: "1.1.13"
 spec: 270
 name: "MW Monk No Apex M+"
 description: "M+ No-Apex build."
@@ -14,7 +14,7 @@ config:
     label: "Recommended Talent String from www.wayofthecrane.io achieved every .1% Mythic+ title as MW"
     text: "C4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgxMWGLjZx2MmZsYstsNjZ2Mz2yyMjFGTzYGwgBMmZmZY2wMMLzEAAAAABYxyMLz2MDAAADAzAGDsIjZA"
   aoe_threshold:
-    section: "Profile v1.1.12 No-Apex M+"
+    section: "Profile v1.1.13 No-Apex M+"
     type: slider
     label: "SCK Threshold (enemies in 8y)"
     min: 1
@@ -172,7 +172,7 @@ lists:
     - life_cocoon.focus,range_check=focus,interrupt=true,use_off_gcd=1,if=config.use_life_cocoon&focus.exists&focus.alive&focus.friendly&focus.health.effective.pct<config.life_cocoon_threshold&focus.range<=40&player.combat&cooldown.life_cocoon.ready
     - spinning_crane_kick,if=var.dance_of_chiji&target.exists&target.enemy&target.range<=8
     - rushing_wind_kick,if=var.has_rwk&buff.thunder_focus_tea.up&target.exists&target.enemy&target.range<=5
-    - rising_sun_kick
+    - rising_sun_kick,if=target.range<=5&target.enemy
     - spinning_crane_kick,if=var.spin_to_win_ok&target.exists&target.enemy&target.range<=8
     - call_action_list,name=cooldowns,if=state.cds
     - thunder_focus_tea,range_check=none,if=var.tft_ready
