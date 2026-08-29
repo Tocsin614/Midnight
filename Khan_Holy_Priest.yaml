@@ -15,7 +15,7 @@ movement_allowed: true
 config:
 
   content_mode:
-    section: "v1.9.1"
+    section: "v1.10.1"
     label: "Content Mode"
     type: dropdown
     options:
