@@ -4,20 +4,12 @@ spec: 264
 name: Khan Resto Shaman
 movement_allowed: true
 description: |
-  Restoration Shaman | Midnight 12.1
-  Reordered member_healing to Method.gg's current Totemic priority: Riptide
-  kept on CD, then Healing Rain, Unleash Life, Downpour, Chain Heal/Healing
-  Wave fill. Totemic is this season's meta build (was Farseer last season).
-  Farseer talents (Primordial Wave, Ancestral Swiftness) remain talent-gated
-  and self-skip when unowned, so a Farseer player still gets a working
-  rotation - priority is just tuned around Totemic now, matching most users.
-  Added general Lava Surge -> Lava Burst weaving (previously movement-only).
-  Trinkets simplified to the canonical trinket_1/2.sync pattern (.sync
-  already covers ready+burst-check).
+  Restoration Shaman | Midnight 12.1.
+  
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.4.0"
+    section: "Healing v2.5.0"
     label: "Mouseover Healing"
     type: checkbox
     default: true
