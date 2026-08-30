@@ -1,4 +1,4 @@
-version: 1.10.0
+version: 1.10.2
 author: Khan
 spec: 257
 name: Khan's Holy Priest
@@ -15,7 +15,7 @@ movement_allowed: true
 config:
 
   content_mode:
-    section: "v1.10.1"
+    section: "v1.10.2"
     label: "Content Mode"
     type: dropdown
     options:
@@ -166,6 +166,13 @@ config:
         value: 1
     default: 0
 
+  angelic_feather_movement_time:
+    label: "Feather after moving"
+    type: slider
+    min: 0
+    max: 5
+    default: 4
+
   trinket_usage:
     label: "Trinket Usage"
     type: dropdown
@@ -203,6 +210,9 @@ variables:
 
   # === MANA STATE ===
   mana_ok: mana.pct>config.mana_conserve_pct
+
+  # === MOVEMENT ===
+  use_feather: moving.time>=config.angelic_feather_movement_time&buff.angelic_feather.down
 
   # === HOLY WORD CHARGE MANAGEMENT ===
   # Holy Words cap at 2 charges — capping wastes CDR from Flash Heal / Prayer of Healing
@@ -451,6 +461,7 @@ lists:
     - call_action_list,name=auto_heal,if=player.combat
     - call_action_list,name=interrupts
     - call_action_list,name=out_of_combat,if=!player.combat
+    - angelic_feather.player,range_check=none,if=var.use_feather
     - return,if=!player.combat&!((config.auto_combat.has(1)&target.quest_mob&target.enemy)|(config.auto_combat.has(2)&target.combat&target.enemy)|(config.auto_combat.has(3)&player.auto_attacking&target.enemy))
     - return,if=!player.combat&config.auto_combat.has(0)
     - call_action_list,name=emergency_healing,if=var.needs_emergency
