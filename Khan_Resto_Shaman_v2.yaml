@@ -1,15 +1,23 @@
-version: "2.4.1"
+version: "2.5.0"
 author: Khan
 spec: 264
 name: Khan Resto Shaman
 movement_allowed: true
 description: |
-  Restoration Shaman | Midnight 12.0
-  Spell priority built from WarcraftLogs top healer data. New method
+  Restoration Shaman | Midnight 12.1
+  Reordered member_healing to Method.gg's current Totemic priority: Riptide
+  kept on CD, then Healing Rain, Unleash Life, Downpour, Chain Heal/Healing
+  Wave fill. Totemic is this season's meta build (was Farseer last season).
+  Farseer talents (Primordial Wave, Ancestral Swiftness) remain talent-gated
+  and self-skip when unowned, so a Farseer player still gets a working
+  rotation - priority is just tuned around Totemic now, matching most users.
+  Added general Lava Surge -> Lava Burst weaving (previously movement-only).
+  Trinkets simplified to the canonical trinket_1/2.sync pattern (.sync
+  already covers ready+burst-check).
 entry: main
 config:
   mouseover_healing:
-    section: "Healing v2.4.1"
+    section: "Healing v2.4.0"
     label: "Mouseover Healing"
     type: checkbox
     default: true
@@ -53,6 +61,13 @@ config:
     label: "Jecht Healing Wave Raid Block"
     type: checkbox
     default: false
+  healing_rain_threshold:
+    section: "Healing"
+    label: "Healing Rain HP %"
+    type: slider
+    min: 1
+    max: 100
+    default: 90
   healing_rain_members:
     section: "Healing"
     label: "Healing Rain - Min Injured Members"
@@ -184,10 +199,12 @@ lists:
     - chain_heal.focus_mouseover,range_check=mouseover,if=config.mouseover_healing&mouseover.health.effective.pct<=config.chain_heal_threshold
     - natures_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.natures_swiftness.enabled&!var.natures_swiftness_up&cooldown.natures_swiftness.ready
     - ancestral_swiftness,interrupt=true,range_check=none,if=config.swiftness_on_cooldown&talent.ancestral_swiftness.enabled&!var.ancestral_swiftness_up&cooldown.ancestral_swiftness.ready
-    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.effective.pct<config.healing_wave_threshold
+    # Riptide - keep on cooldown (guide: "keep Surging Totem and Riptide on cooldown")
     - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.effective.pct<config.riptide_threshold
     - riptide,target=lowest,if=var.riptide_overcap
-    - healing_rain,range_check=none,if=talent.healing_rain.enabled&cooldown.healing_rain.ready&group.count(cycle.health.effective.pct<90)>=config.healing_rain_members
+    # Totemic priority order: Healing Rain -> Unleash Life -> Downpour -> Chain Heal/Healing Wave
+    - healing_rain,range_check=none,if=talent.healing_rain.enabled&cooldown.healing_rain.ready&group.count(cycle.health.effective.pct<config.healing_rain_threshold)>=config.healing_rain_members
+    - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.effective.pct<config.healing_wave_threshold
     - downpour,range_check=none,if=talent.downpour.enabled&cooldown.downpour.ready&var.surging_totem_expires_soon
     - downpour,range_check=none,if=talent.downpour.enabled&cooldown.downpour.ready&var.group_needs_healing
     - primordial_wave,target=lowest,if=talent.primordial_wave.enabled&cooldown.primordial_wave.ready
@@ -209,7 +226,6 @@ lists:
     - riptide,cycle=members,if=cycle.buff.riptide.down&cycle.health.effective.pct<config.riptide_threshold
     - unleash_life,interrupt=true,target=lowest,if=cooldown.unleash_life.ready&group.lowest.health.effective.pct<config.healing_wave_threshold
     - surging_totem,range_check=none,if=talent.surging_totem.enabled&!var.surging_totem_up
-    - lava_burst,if=var.lava_surge_up
   dps_filler:
     - flame_shock,if=!dot.flame_shock.ticking&target.valid&target.enemy
     - lava_burst,if=dot.flame_shock.ticking&cooldown.lava_burst.charges>=1
@@ -232,10 +248,8 @@ lists:
     - bag_of_tricks,target=lowest,if=group.lowest.health.effective.pct<var.racial_heal_ally_hp
     - shadowmeld,if=target.threat>=3&!player.casting
   trinkets:
-    - trinket_1,if=trinket_1.sync&(var.group_needs_healing|var.group_emergency)
-    - trinket_2,if=trinket_2.sync&(var.group_needs_healing|var.group_emergency)
-    - trinket_1,if=trinket_1.ready&var.group_emergency
-    - trinket_2,if=trinket_2.ready&var.group_emergency
+    - trinket_1,if=trinket_1.sync
+    - trinket_2,if=trinket_2.sync
   main:
     - call_action_list,name=spell_queue
     - call_action_list,name=sanity_checks
@@ -254,6 +268,9 @@ lists:
     - call_action_list,name=racial_defensive
     - return,if=player.cc
     - call_action_list,name=totem_maintenance
+    # Weave instant Lava Bursts off Lava Surge procs whenever the GCD allows -
+    # guide: "weave instant Lava Bursts via Lava Surge procs when GCD allows"
+    - lava_burst,if=var.lava_surge_up
     - call_action_list,name=racial_offensive,if=var.group_needs_healing
     - call_action_list,name=moving,if=player.moving
     - call_action_list,name=mouseover_friendly,if=var.mo_friendly_valid&!player.casting
