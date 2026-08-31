@@ -1,4 +1,4 @@
-version: 1.10.2
+version: 1.10.3
 author: Khan
 spec: 257
 name: Khan's Holy Priest
@@ -6,7 +6,8 @@ date: "2026-08-28"
 patch: "12.1"
 description: |
   Holy Priest healing rotation. Venomous Abyss S2: added Lightweaver
-  (Archon) stack requirement before Prayer of Healing.
+  (Archon) stack requirement before Prayer of Healing. Added Angelic
+  Feather. Added threat-based auto Fade.
 
 entry: main
 
@@ -15,7 +16,7 @@ movement_allowed: true
 config:
 
   content_mode:
-    section: "v1.10.2"
+    section: "v1.10.3"
     label: "Content Mode"
     type: dropdown
     options:
@@ -113,6 +114,11 @@ config:
     min: 1
     max: 100
     default: 40
+
+  auto_fade:
+    label: "Auto Fade"
+    type: checkbox
+    default: true
 
   guardian_spirit_hp:
     label: "Guardian Spirit HP %"
@@ -280,6 +286,8 @@ lists:
     - flash_heal.player,range_check=none,if=var.player_low
 
   defensive_cooldowns:
+    # Threat drop — matches Khan_Discipline_Priest.yaml's auto_fade pattern
+    - fade,if=target.threat>=3&config.auto_fade
     # Translucent Image: Fade becomes 10% damage reduction — use it
     - fade,range_check=none,if=player.combat&health.pct<config.desperate_prayer_hp&cooldown.fade.ready&talent.translucent_image.enabled
     - desperate_prayer,range_check=none,if=health.pct<config.desperate_prayer_hp&cooldown.desperate_prayer.ready
