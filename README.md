@@ -1,1 +1,1 @@
-Removed rotations I am not going to support. 
+Removed the rotations I am not going to support. 
